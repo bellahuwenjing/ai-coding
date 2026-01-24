@@ -6,12 +6,12 @@
 ## 1. Overview
 
 ### 1.1 Product Summary
-RESTful API for a multi-tenant scheduling system that manages resources (people, vehicles, equipment) and their schedules.
+RESTful API for a multi-tenant booking system that manages resources (people, vehicles, equipment) and allocates them to bookings.
 
 ### 1.2 Key Features
 - Multi-tenant architecture (company isolation)
 - Role-based access control (Admin, Member)
-- Resource and schedule management
+- Resource and booking management
 - Conflict detection
 - JWT/Token authentication
 
@@ -41,7 +41,7 @@ schpro-backend/
 │   │   │   ├── RegisterController.php
 │   │   │   └── LogoutController.php
 │   │   ├── ResourceController.php
-│   │   ├── ScheduleController.php
+│   │   ├── BookingController.php
 │   │   └── UserController.php
 │   ├── Filters/
 │   │   ├── AuthFilter.php
@@ -51,15 +51,15 @@ schpro-backend/
 │   │   ├── CompanyModel.php
 │   │   ├── UserModel.php
 │   │   ├── ResourceModel.php
-│   │   └── ScheduleModel.php
+│   │   └── BookingModel.php
 │   ├── Libraries/
 │   │   ├── ConflictDetection.php
-│   │   └── ScheduleService.php
+│   │   └── BookingService.php
 │   ├── Entities/
 │   │   ├── Company.php
 │   │   ├── User.php
 │   │   ├── Resource.php
-│   │   └── Schedule.php
+│   │   └── Booking.php
 │   ├── Database/
 │   │   ├── Migrations/
 │   │   └── Seeds/
@@ -102,7 +102,7 @@ CREATE TABLE companies (
 {
     "timezone": "America/New_York",
     "allow_conflicts": false,
-    "default_schedule_duration": 60,
+    "default_booking_duration": 60,
     "working_hours": {
         "start": "09:00",
         "end": "17:00"
@@ -220,10 +220,10 @@ Equipment:
 }
 ```
 
-### 4.5 schedules
+### 4.5 bookings
 
 ```sql
-CREATE TABLE schedules (
+CREATE TABLE bookings (
     id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     company_id BIGINT UNSIGNED NOT NULL,
     resource_id BIGINT UNSIGNED NOT NULL,
@@ -233,7 +233,7 @@ CREATE TABLE schedules (
     end_time DATETIME NOT NULL,
     notes TEXT NULL,
     recurrence_rule VARCHAR(255) NULL,
-    parent_schedule_id BIGINT UNSIGNED NULL,
+    parent_booking_id BIGINT UNSIGNED NULL,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
@@ -245,7 +245,7 @@ CREATE TABLE schedules (
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
     FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
+    FOREIGN KEY (parent_booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 );
 ```
 
@@ -589,18 +589,18 @@ Response (201):
 
 ---
 
-### 5.3 Schedules
+### 5.3 Bookings
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
-| GET | `/api/schedules` | List schedules | All |
-| POST | `/api/schedules` | Create schedule | Admin |
-| GET | `/api/schedules/{id}` | Get schedule details | All |
-| PUT | `/api/schedules/{id}` | Update schedule | Admin |
-| DELETE | `/api/schedules/{id}` | Delete schedule | Admin |
-| GET | `/api/schedules/conflicts` | Check for conflicts | All |
+| GET | `/api/bookings` | List bookings | All |
+| POST | `/api/bookings` | Create booking | Admin |
+| GET | `/api/bookings/{id}` | Get booking details | All |
+| PUT | `/api/bookings/{id}` | Update booking | Admin |
+| DELETE | `/api/bookings/{id}` | Delete booking | Admin |
+| GET | `/api/bookings/conflicts` | Check for conflicts | All |
 
-**GET /api/schedules**
+**GET /api/bookings**
 
 Query Parameters:
 - `resource_id` (integer): Filter by resource
@@ -638,7 +638,7 @@ Response (200):
 }
 ```
 
-**POST /api/schedules**
+**POST /api/bookings**
 
 Request:
 ```json
@@ -669,13 +669,13 @@ Response (201):
 }
 ```
 
-**GET /api/schedules/conflicts**
+**GET /api/bookings/conflicts**
 
 Query Parameters:
 - `resource_id` (integer, required): Resource to check
 - `start_time` (datetime, required): Proposed start
 - `end_time` (datetime, required): Proposed end
-- `exclude_id` (integer): Schedule ID to exclude (for updates)
+- `exclude_id` (integer): Booking ID to exclude (for updates)
 
 Response (200):
 ```json
@@ -840,26 +840,26 @@ class ResourceModel extends BaseModel
     }
 
     /**
-     * Get schedules for this resource
+     * Get bookings for this resource
      */
-    public function getSchedules(int $resourceId)
+    public function getBookings(int $resourceId)
     {
-        $scheduleModel = new ScheduleModel();
-        return $scheduleModel->where('resource_id', $resourceId)->findAll();
+        $bookingModel = new BookingModel();
+        return $bookingModel->where('resource_id', $resourceId)->findAll();
     }
 }
 ```
 
-### 6.3 Schedule Model
+### 6.3 Booking Model
 
 ```php
 <?php
-// app/Models/ScheduleModel.php
+// app/Models/BookingModel.php
 namespace App\Models;
 
-class ScheduleModel extends BaseModel
+class BookingModel extends BaseModel
 {
-    protected $table         = 'schedules';
+    protected $table         = 'bookings';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
     protected $allowedFields = [
@@ -871,7 +871,7 @@ class ScheduleModel extends BaseModel
         'end_time',
         'notes',
         'recurrence_rule',
-        'parent_schedule_id'
+        'parent_booking_id'
     ];
 
     protected $validationRules = [
@@ -896,7 +896,7 @@ class ScheduleModel extends BaseModel
     }
 
     /**
-     * Get schedules within a date range
+     * Get bookings within a date range
      */
     public function getByDateRange(int $companyId, string $startDate, string $endDate, array $filters = [])
     {
@@ -912,14 +912,14 @@ class ScheduleModel extends BaseModel
     }
 
     /**
-     * Get schedule with resource details
+     * Get booking with resource details
      */
     public function getWithResource(int $id, int $companyId)
     {
-        return $this->select('schedules.*, resources.name as resource_name, resources.type as resource_type')
-                    ->join('resources', 'resources.id = schedules.resource_id')
-                    ->where('schedules.id', $id)
-                    ->where('schedules.company_id', $companyId)
+        return $this->select('bookings.*, resources.name as resource_name, resources.type as resource_type')
+                    ->join('resources', 'resources.id = bookings.resource_id')
+                    ->where('bookings.id', $id)
+                    ->where('bookings.company_id', $companyId)
                     ->first();
     }
 }
@@ -1105,13 +1105,13 @@ $routes->group('api', ['filter' => 'auth'], function ($routes) {
     $routes->put('resources/(:num)', 'ResourceController::update/$1', ['filter' => 'admin']);
     $routes->delete('resources/(:num)', 'ResourceController::delete/$1', ['filter' => 'admin']);
 
-    // Schedules
-    $routes->get('schedules', 'ScheduleController::index');
-    $routes->get('schedules/conflicts', 'ScheduleController::conflicts');
-    $routes->get('schedules/(:num)', 'ScheduleController::show/$1');
-    $routes->post('schedules', 'ScheduleController::create', ['filter' => 'admin']);
-    $routes->put('schedules/(:num)', 'ScheduleController::update/$1', ['filter' => 'admin']);
-    $routes->delete('schedules/(:num)', 'ScheduleController::delete/$1', ['filter' => 'admin']);
+    // Bookings
+    $routes->get('bookings', 'BookingController::index');
+    $routes->get('bookings/conflicts', 'BookingController::conflicts');
+    $routes->get('bookings/(:num)', 'BookingController::show/$1');
+    $routes->post('bookings', 'BookingController::create', ['filter' => 'admin']);
+    $routes->put('bookings/(:num)', 'BookingController::update/$1', ['filter' => 'admin']);
+    $routes->delete('bookings/(:num)', 'BookingController::delete/$1', ['filter' => 'admin']);
 
     // Users (Admin only)
     $routes->group('users', ['filter' => 'admin'], function ($routes) {
@@ -1135,35 +1135,35 @@ $routes->group('api', ['filter' => 'auth'], function ($routes) {
 // app/Libraries/ConflictDetection.php
 namespace App\Libraries;
 
-use App\Models\ScheduleModel;
+use App\Models\BookingModel;
 use CodeIgniter\I18n\Time;
 
 class ConflictDetection
 {
-    protected ScheduleModel $scheduleModel;
+    protected BookingModel $bookingModel;
 
     public function __construct()
     {
-        $this->scheduleModel = new ScheduleModel();
+        $this->bookingModel = new BookingModel();
     }
 
     /**
-     * Find conflicting schedules for a resource
+     * Find conflicting bookings for a resource
      */
     public function findConflicts(
         int $resourceId,
         string $startTime,
         string $endTime,
-        ?int $excludeScheduleId = null
+        ?int $excludeBookingId = null
     ): array {
-        $builder = $this->scheduleModel->builder();
+        $builder = $this->bookingModel->builder();
 
         $builder->where('resource_id', $resourceId)
                 ->where('start_time <', $endTime)
                 ->where('end_time >', $startTime);
 
-        if ($excludeScheduleId) {
-            $builder->where('id !=', $excludeScheduleId);
+        if ($excludeBookingId) {
+            $builder->where('id !=', $excludeBookingId);
         }
 
         return $builder->get()->getResultArray();
@@ -1176,38 +1176,38 @@ class ConflictDetection
         int $resourceId,
         string $startTime,
         string $endTime,
-        ?int $excludeScheduleId = null
+        ?int $excludeBookingId = null
     ): bool {
-        return count($this->findConflicts($resourceId, $startTime, $endTime, $excludeScheduleId)) > 0;
+        return count($this->findConflicts($resourceId, $startTime, $endTime, $excludeBookingId)) > 0;
     }
 }
 ```
 
-### 8.2 Schedule Service
+### 8.2 Booking Service
 
 ```php
 <?php
-// app/Libraries/ScheduleService.php
+// app/Libraries/BookingService.php
 namespace App\Libraries;
 
-use App\Models\ScheduleModel;
+use App\Models\BookingModel;
 use CodeIgniter\I18n\Time;
 
-class ScheduleService
+class BookingService
 {
-    protected ScheduleModel $scheduleModel;
+    protected BookingModel $bookingModel;
     protected ConflictDetection $conflictDetection;
 
     public function __construct()
     {
-        $this->scheduleModel = new ScheduleModel();
+        $this->bookingModel = new BookingModel();
         $this->conflictDetection = new ConflictDetection();
     }
 
     /**
-     * Create a new schedule with conflict checking
+     * Create a new booking with conflict checking
      */
-    public function createSchedule(array $data): array
+    public function createBooking(array $data): array
     {
         // Check for conflicts
         if ($this->conflictDetection->hasConflicts(
@@ -1215,30 +1215,30 @@ class ScheduleService
             $data['start_time'],
             $data['end_time']
         )) {
-            throw new \RuntimeException('Schedule conflicts with existing schedules');
+            throw new \RuntimeException('Booking conflicts with existing bookings');
         }
 
         $db = \Config\Database::connect();
         $db->transStart();
 
-        $scheduleId = $this->scheduleModel->insert($data);
+        $bookingId = $this->bookingModel->insert($data);
 
-        // Handle recurring schedules
+        // Handle recurring bookings
         if (!empty($data['recurrence_rule'])) {
-            $this->createRecurringInstances($scheduleId, $data);
+            $this->createRecurringInstances($bookingId, $data);
         }
 
         $db->transComplete();
 
         if ($db->transStatus() === false) {
-            throw new \RuntimeException('Failed to create schedule');
+            throw new \RuntimeException('Failed to create booking');
         }
 
-        return $this->scheduleModel->find($scheduleId);
+        return $this->bookingModel->find($bookingId);
     }
 
     /**
-     * Create recurring schedule instances
+     * Create recurring booking instances
      */
     private function createRecurringInstances(int $parentId, array $data): void
     {
@@ -1269,7 +1269,7 @@ class ScheduleService
                     'start_time'         => $start->toDateTimeString(),
                     'end_time'           => $instanceEnd->toDateTimeString(),
                     'notes'              => $data['notes'] ?? null,
-                    'parent_schedule_id' => $parentId,
+                    'parent_booking_id' => $parentId,
                     'created_at'         => Time::now()->toDateTimeString(),
                     'updated_at'         => Time::now()->toDateTimeString(),
                 ];
@@ -1277,14 +1277,14 @@ class ScheduleService
         }
 
         if (!empty($instances)) {
-            $this->scheduleModel->insertBatch($instances);
+            $this->bookingModel->insertBatch($instances);
         }
     }
 
     /**
-     * Update a schedule
+     * Update a booking
      */
-    public function updateSchedule(int $id, array $data): array
+    public function updateBooking(int $id, array $data): array
     {
         // Check for conflicts (exclude self)
         if (isset($data['start_time']) && isset($data['end_time'])) {
@@ -1294,12 +1294,12 @@ class ScheduleService
                 $data['end_time'],
                 $id
             )) {
-                throw new \RuntimeException('Schedule conflicts with existing schedules');
+                throw new \RuntimeException('Booking conflicts with existing bookings');
             }
         }
 
-        $this->scheduleModel->update($id, $data);
-        return $this->scheduleModel->find($id);
+        $this->bookingModel->update($id, $data);
+        return $this->bookingModel->find($id);
     }
 }
 ```
@@ -1348,8 +1348,8 @@ class Validation extends BaseConfig
         ],
     ];
 
-    // Schedule validation rules
-    public array $schedule = [
+    // Booking validation rules
+    public array $booking = [
         'resource_id' => 'required|integer',
         'title' => 'required|max_length[255]',
         'start_time' => 'required|valid_date',
@@ -1357,7 +1357,7 @@ class Validation extends BaseConfig
         'recurrence_rule' => 'permit_empty|in_list[daily,weekly,monthly]',
     ];
 
-    public array $schedule_errors = [
+    public array $booking_errors = [
         'resource_id' => [
             'required' => 'Resource is required.',
             'integer' => 'Invalid resource ID.',
@@ -1575,7 +1575,7 @@ class ResourceController extends BaseResourceController
 
 ### 11.2 Authorization
 - Admin role required for create/update/delete operations
-- Member role can only read resources and schedules
+- Member role can only read resources and bookings
 - All queries scoped to user's company via Filters and Model methods
 
 ### 11.3 Data Protection
@@ -1677,7 +1677,7 @@ php spark routes
 ### 14.1 Test Coverage Required
 - Authentication flow (register, login, logout)
 - CRUD operations for resources
-- CRUD operations for schedules
+- CRUD operations for bookings
 - Conflict detection logic
 - Multi-tenant isolation
 - Role-based access control
@@ -1686,7 +1686,7 @@ php spark routes
 
 ```php
 <?php
-// tests/Feature/ScheduleConflictTest.php
+// tests/Feature/BookingConflictTest.php
 namespace Tests\Feature;
 
 use CodeIgniter\Test\CIUnitTestCase;
@@ -1694,21 +1694,21 @@ use CodeIgniter\Test\FeatureTestTrait;
 use CodeIgniter\Test\DatabaseTestTrait;
 use App\Models\UserModel;
 use App\Models\ResourceModel;
-use App\Models\ScheduleModel;
+use App\Models\BookingModel;
 
-class ScheduleConflictTest extends CIUnitTestCase
+class BookingConflictTest extends CIUnitTestCase
 {
     use FeatureTestTrait;
     use DatabaseTestTrait;
 
     protected $refresh = true;
 
-    public function testPreventsOverlappingSchedules(): void
+    public function testPreventsOverlappingBookings(): void
     {
         // Create test data
         $userModel = new UserModel();
         $resourceModel = new ResourceModel();
-        $scheduleModel = new ScheduleModel();
+        $bookingModel = new BookingModel();
 
         $companyId = 1; // Assuming seeded company
 
@@ -1726,12 +1726,12 @@ class ScheduleConflictTest extends CIUnitTestCase
             'type' => 'person',
         ]);
 
-        // Create first schedule
-        $scheduleModel->insert([
+        // Create first booking
+        $bookingModel->insert([
             'company_id' => $companyId,
             'resource_id' => $resourceId,
             'created_by' => $userId,
-            'title' => 'Existing Schedule',
+            'title' => 'Existing Booking',
             'start_time' => '2026-01-25 10:00:00',
             'end_time' => '2026-01-25 12:00:00',
         ]);
@@ -1739,12 +1739,12 @@ class ScheduleConflictTest extends CIUnitTestCase
         // Generate JWT token for auth
         $token = $this->generateTestToken($userId, $companyId, 'admin');
 
-        // Attempt overlapping schedule
+        // Attempt overlapping booking
         $result = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->post('/api/schedules', [
+        ])->post('/api/bookings', [
             'resource_id' => $resourceId,
-            'title' => 'Overlapping Schedule',
+            'title' => 'Overlapping Booking',
             'start_time' => '2026-01-25 11:00:00',
             'end_time' => '2026-01-25 13:00:00',
         ]);
@@ -1774,7 +1774,7 @@ class ScheduleConflictTest extends CIUnitTestCase
 php spark test
 
 # Run specific test file
-php spark test tests/Feature/ScheduleConflictTest.php
+php spark test tests/Feature/BookingConflictTest.php
 
 # Run with coverage
 php spark test --coverage-html writable/coverage

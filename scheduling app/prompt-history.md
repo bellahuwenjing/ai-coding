@@ -162,3 +162,23 @@ Key structural changes:
 - Deployment uses `php spark` commands instead of `php artisan`
 
 ---
+
+### Prompt 13
+
+**User:** Replace "schedule" terminology with "booking" throughout the backend PRD. The app schedules resources by creating bookings that can be allocated people, vehicles, equipment or a combination of them.
+
+**Response:** Updated `docs/prd/PRD-backend.md` replacing all schedule terminology with booking:
+
+| Before | After |
+|--------|-------|
+| schedules (table) | bookings |
+| ScheduleModel | BookingModel |
+| ScheduleController | BookingController |
+| ScheduleService | BookingService |
+| /api/schedules | /api/bookings |
+| parent_schedule_id | parent_booking_id |
+| Schedule.php (entity) | Booking.php |
+
+Product names (SchedulePro, schedulepro database) retained as-is.
+
+---
