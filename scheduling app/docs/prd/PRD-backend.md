@@ -1,5 +1,5 @@
 # PRD: Backend API
-## SchedulePro - Laravel + MySQL Multi-Tenant API
+## SchedulePro - CodeIgniter 4 + MySQL Multi-Tenant API
 
 ---
 
@@ -13,7 +13,7 @@ RESTful API for a multi-tenant scheduling system that manages resources (people,
 - Role-based access control (Admin, Member)
 - Resource and schedule management
 - Conflict detection
-- API token authentication
+- JWT/Token authentication
 
 ---
 
@@ -21,12 +21,12 @@ RESTful API for a multi-tenant scheduling system that manages resources (people,
 
 | Component | Technology |
 |-----------|------------|
-| Framework | Laravel 11 |
+| Framework | CodeIgniter 4.x |
 | Database | MySQL 8 / MariaDB |
-| Authentication | Laravel Sanctum (API tokens) |
-| Queue | Laravel Queue (database driver) |
+| Authentication | CodeIgniter Shield (or custom JWT with firebase/php-jwt) |
+| Tasks | CodeIgniter Tasks |
 | Cache | Redis (optional) or file |
-| PHP Version | 8.2+ |
+| PHP Version | 8.1+ |
 
 ---
 
@@ -35,44 +35,47 @@ RESTful API for a multi-tenant scheduling system that manages resources (people,
 ```
 schpro-backend/
 ├── app/
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── Auth/
-│   │   │   │   ├── LoginController.php
-│   │   │   │   ├── RegisterController.php
-│   │   │   │   └── LogoutController.php
-│   │   │   ├── ResourceController.php
-│   │   │   ├── ScheduleController.php
-│   │   │   └── UserController.php
-│   │   ├── Middleware/
-│   │   │   ├── EnsureUserIsAdmin.php
-│   │   │   └── SetCompanyScope.php
-│   │   └── Requests/
-│   │       ├── StoreResourceRequest.php
-│   │       ├── UpdateResourceRequest.php
-│   │       ├── StoreScheduleRequest.php
-│   │       └── UpdateScheduleRequest.php
+│   ├── Controllers/
+│   │   ├── Auth/
+│   │   │   ├── LoginController.php
+│   │   │   ├── RegisterController.php
+│   │   │   └── LogoutController.php
+│   │   ├── ResourceController.php
+│   │   ├── ScheduleController.php
+│   │   └── UserController.php
+│   ├── Filters/
+│   │   ├── AuthFilter.php
+│   │   ├── AdminFilter.php
+│   │   └── CompanyFilter.php
 │   ├── Models/
+│   │   ├── CompanyModel.php
+│   │   ├── UserModel.php
+│   │   ├── ResourceModel.php
+│   │   └── ScheduleModel.php
+│   ├── Libraries/
+│   │   ├── ConflictDetection.php
+│   │   └── ScheduleService.php
+│   ├── Entities/
 │   │   ├── Company.php
 │   │   ├── User.php
 │   │   ├── Resource.php
 │   │   └── Schedule.php
-│   ├── Policies/
-│   │   ├── ResourcePolicy.php
-│   │   └── SchedulePolicy.php
-│   ├── Services/
-│   │   ├── ConflictDetectionService.php
-│   │   └── ScheduleService.php
-│   └── Scopes/
-│       └── CompanyScope.php
-├── database/
-│   ├── migrations/
-│   └── seeders/
-├── routes/
-│   └── api.php
-├── config/
+│   ├── Database/
+│   │   ├── Migrations/
+│   │   └── Seeds/
+│   └── Config/
+│       ├── Routes.php
+│       ├── Filters.php
+│       └── Validation.php
+├── writable/
+│   ├── logs/
+│   ├── cache/
+│   └── session/
+├── public/
+│   └── index.php
 ├── tests/
-└── .env.example
+├── .env
+└── spark
 ```
 
 ---
@@ -118,7 +121,6 @@ CREATE TABLE users (
     name VARCHAR(255) NOT NULL,
     role ENUM('admin', 'member') DEFAULT 'member',
     email_verified_at TIMESTAMP NULL,
-    remember_token VARCHAR(100) NULL,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
@@ -128,7 +130,24 @@ CREATE TABLE users (
 );
 ```
 
-### 4.3 resources
+### 4.3 auth_tokens (for JWT/token auth)
+
+```sql
+CREATE TABLE auth_tokens (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    token VARCHAR(64) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+
+    UNIQUE INDEX idx_token (token),
+    INDEX idx_user_id (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+### 4.4 resources
 
 ```sql
 CREATE TABLE resources (
@@ -201,7 +220,7 @@ Equipment:
 }
 ```
 
-### 4.4 schedules
+### 4.5 schedules
 
 ```sql
 CREATE TABLE schedules (
@@ -230,25 +249,190 @@ CREATE TABLE schedules (
 );
 ```
 
-### 4.5 personal_access_tokens (Sanctum)
+### 4.6 Database Migrations (CI4 Format)
 
-```sql
--- Laravel Sanctum default table
-CREATE TABLE personal_access_tokens (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    tokenable_type VARCHAR(255) NOT NULL,
-    tokenable_id BIGINT UNSIGNED NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    token VARCHAR(64) NOT NULL,
-    abilities TEXT NULL,
-    last_used_at TIMESTAMP NULL,
-    expires_at TIMESTAMP NULL,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
+```php
+<?php
+// app/Database/Migrations/2026-01-01-000001_CreateCompaniesTable.php
+namespace App\Database\Migrations;
 
-    UNIQUE INDEX idx_token (token),
-    INDEX idx_tokenable (tokenable_type, tokenable_id)
-);
+use CodeIgniter\Database\Migration;
+
+class CreateCompaniesTable extends Migration
+{
+    public function up()
+    {
+        $this->forge->addField([
+            'id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+                'auto_increment' => true,
+            ],
+            'name' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+            ],
+            'slug' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+            ],
+            'settings' => [
+                'type' => 'JSON',
+                'null' => true,
+            ],
+            'created_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+            'updated_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+        ]);
+
+        $this->forge->addPrimaryKey('id');
+        $this->forge->addUniqueKey('slug');
+        $this->forge->addKey('slug', false, false, 'idx_slug');
+        $this->forge->createTable('companies');
+    }
+
+    public function down()
+    {
+        $this->forge->dropTable('companies');
+    }
+}
+```
+
+```php
+<?php
+// app/Database/Migrations/2026-01-01-000002_CreateUsersTable.php
+namespace App\Database\Migrations;
+
+use CodeIgniter\Database\Migration;
+
+class CreateUsersTable extends Migration
+{
+    public function up()
+    {
+        $this->forge->addField([
+            'id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+                'auto_increment' => true,
+            ],
+            'company_id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+            ],
+            'email' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+            ],
+            'password' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+            ],
+            'name' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+            ],
+            'role' => [
+                'type' => 'ENUM',
+                'constraint' => ['admin', 'member'],
+                'default' => 'member',
+            ],
+            'email_verified_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+            'created_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+            'updated_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+        ]);
+
+        $this->forge->addPrimaryKey('id');
+        $this->forge->addUniqueKey('email', 'idx_email');
+        $this->forge->addKey('company_id', false, false, 'idx_company_id');
+        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->createTable('users');
+    }
+
+    public function down()
+    {
+        $this->forge->dropTable('users');
+    }
+}
+```
+
+```php
+<?php
+// app/Database/Migrations/2026-01-01-000003_CreateResourcesTable.php
+namespace App\Database\Migrations;
+
+use CodeIgniter\Database\Migration;
+
+class CreateResourcesTable extends Migration
+{
+    public function up()
+    {
+        $this->forge->addField([
+            'id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+                'auto_increment' => true,
+            ],
+            'company_id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+            ],
+            'name' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+            ],
+            'type' => [
+                'type' => 'ENUM',
+                'constraint' => ['person', 'vehicle', 'equipment'],
+            ],
+            'metadata' => [
+                'type' => 'JSON',
+                'null' => true,
+            ],
+            'availability' => [
+                'type' => 'JSON',
+                'null' => true,
+            ],
+            'is_active' => [
+                'type' => 'BOOLEAN',
+                'default' => true,
+            ],
+            'created_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+            'updated_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+        ]);
+
+        $this->forge->addPrimaryKey('id');
+        $this->forge->addKey('company_id', false, false, 'idx_company_id');
+        $this->forge->addKey('type', false, false, 'idx_type');
+        $this->forge->addKey('is_active', false, false, 'idx_is_active');
+        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->createTable('resources');
+    }
+
+    public function down()
+    {
+        $this->forge->dropTable('resources');
+    }
+}
 ```
 
 ---
@@ -292,7 +476,7 @@ Response (201):
         "name": "Acme Corp",
         "slug": "acme-corp"
     },
-    "token": "1|abc123..."
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -316,7 +500,7 @@ Response (200):
         "role": "admin",
         "company_id": 1
     },
-    "token": "2|xyz789..."
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -549,304 +733,812 @@ Response (201):
 
 ## 6. Multi-Tenancy Implementation
 
-### 6.1 Company Scope
+### 6.1 Base Model with Company Scoping
 
 ```php
-// app/Scopes/CompanyScope.php
-namespace App\Scopes;
+<?php
+// app/Models/BaseModel.php
+namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Scope;
+use CodeIgniter\Model;
 
-class CompanyScope implements Scope
+class BaseModel extends Model
 {
-    public function apply(Builder $builder, Model $model): void
+    protected $useTimestamps = true;
+    protected $createdField  = 'created_at';
+    protected $updatedField  = 'updated_at';
+
+    /**
+     * Get records scoped to the current user's company
+     */
+    public function getByCompany(int $companyId)
     {
-        if (auth()->check()) {
-            $builder->where('company_id', auth()->user()->company_id);
+        return $this->where('company_id', $companyId)->findAll();
+    }
+
+    /**
+     * Find a record ensuring it belongs to the company
+     */
+    public function findByCompany(int $id, int $companyId)
+    {
+        return $this->where('id', $id)
+                    ->where('company_id', $companyId)
+                    ->first();
+    }
+
+    /**
+     * Automatically add company_id on insert
+     */
+    protected function setCompanyId(array $data)
+    {
+        if (!isset($data['data']['company_id'])) {
+            $session = session();
+            $user = $session->get('user');
+            if ($user && isset($user['company_id'])) {
+                $data['data']['company_id'] = $user['company_id'];
+            }
         }
+        return $data;
     }
 }
 ```
 
-### 6.2 Apply to Models
+### 6.2 Resource Model
 
 ```php
-// app/Models/Resource.php
+<?php
+// app/Models/ResourceModel.php
 namespace App\Models;
 
-use App\Scopes\CompanyScope;
-use Illuminate\Database\Eloquent\Model;
-
-class Resource extends Model
+class ResourceModel extends BaseModel
 {
-    protected $fillable = [
-        'company_id', 'name', 'type', 'metadata', 'availability', 'is_active'
+    protected $table         = 'resources';
+    protected $primaryKey    = 'id';
+    protected $returnType    = 'array';
+    protected $allowedFields = [
+        'company_id',
+        'name',
+        'type',
+        'metadata',
+        'availability',
+        'is_active'
+    ];
+
+    protected $validationRules = [
+        'name' => 'required|max_length[255]',
+        'type' => 'required|in_list[person,vehicle,equipment]',
     ];
 
     protected $casts = [
-        'metadata' => 'array',
-        'availability' => 'array',
-        'is_active' => 'boolean',
+        'metadata'     => 'json-array',
+        'availability' => 'json-array',
+        'is_active'    => 'boolean',
     ];
 
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new CompanyScope);
+    protected $beforeInsert = ['setCompanyId'];
 
-        static::creating(function ($model) {
-            if (auth()->check() && !$model->company_id) {
-                $model->company_id = auth()->user()->company_id;
-            }
-        });
+    /**
+     * Get resources for a company with optional filters
+     */
+    public function getFiltered(int $companyId, array $filters = [])
+    {
+        $this->where('company_id', $companyId);
+
+        if (!empty($filters['type'])) {
+            $this->where('type', $filters['type']);
+        }
+
+        if (isset($filters['is_active'])) {
+            $this->where('is_active', (bool) $filters['is_active']);
+        }
+
+        if (!empty($filters['search'])) {
+            $this->like('name', $filters['search']);
+        }
+
+        return $this;
     }
 
-    public function schedules()
+    /**
+     * Get schedules for this resource
+     */
+    public function getSchedules(int $resourceId)
     {
-        return $this->hasMany(Schedule::class);
+        $scheduleModel = new ScheduleModel();
+        return $scheduleModel->where('resource_id', $resourceId)->findAll();
     }
 }
 ```
 
-### 6.3 Middleware
+### 6.3 Schedule Model
 
 ```php
-// app/Http/Middleware/SetCompanyScope.php
-namespace App\Http\Middleware;
+<?php
+// app/Models/ScheduleModel.php
+namespace App\Models;
 
-use Closure;
-use Illuminate\Http\Request;
-
-class SetCompanyScope
+class ScheduleModel extends BaseModel
 {
-    public function handle(Request $request, Closure $next)
+    protected $table         = 'schedules';
+    protected $primaryKey    = 'id';
+    protected $returnType    = 'array';
+    protected $allowedFields = [
+        'company_id',
+        'resource_id',
+        'created_by',
+        'title',
+        'start_time',
+        'end_time',
+        'notes',
+        'recurrence_rule',
+        'parent_schedule_id'
+    ];
+
+    protected $validationRules = [
+        'resource_id' => 'required|integer',
+        'title'       => 'required|max_length[255]',
+        'start_time'  => 'required|valid_date',
+        'end_time'    => 'required|valid_date',
+    ];
+
+    protected $beforeInsert = ['setCompanyId', 'setCreatedBy'];
+
+    protected function setCreatedBy(array $data)
     {
-        if (!auth()->check()) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+        if (!isset($data['data']['created_by'])) {
+            $session = session();
+            $user = $session->get('user');
+            if ($user && isset($user['id'])) {
+                $data['data']['created_by'] = $user['id'];
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Get schedules within a date range
+     */
+    public function getByDateRange(int $companyId, string $startDate, string $endDate, array $filters = [])
+    {
+        $this->where('company_id', $companyId)
+             ->where('start_time >=', $startDate)
+             ->where('end_time <=', $endDate);
+
+        if (!empty($filters['resource_id'])) {
+            $this->where('resource_id', $filters['resource_id']);
         }
 
-        // Company context is automatically applied via global scopes
-        return $next($request);
+        return $this->findAll();
     }
+
+    /**
+     * Get schedule with resource details
+     */
+    public function getWithResource(int $id, int $companyId)
+    {
+        return $this->select('schedules.*, resources.name as resource_name, resources.type as resource_type')
+                    ->join('resources', 'resources.id = schedules.resource_id')
+                    ->where('schedules.id', $id)
+                    ->where('schedules.company_id', $companyId)
+                    ->first();
+    }
+}
+```
+
+### 6.4 Filters (Middleware equivalent)
+
+```php
+<?php
+// app/Filters/AuthFilter.php
+namespace App\Filters;
+
+use CodeIgniter\Filters\FilterInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+class AuthFilter implements FilterInterface
+{
+    public function before(RequestInterface $request, $arguments = null)
+    {
+        $authHeader = $request->getHeaderLine('Authorization');
+
+        if (empty($authHeader) || !str_starts_with($authHeader, 'Bearer ')) {
+            return service('response')
+                ->setJSON(['message' => 'Unauthenticated'])
+                ->setStatusCode(401);
+        }
+
+        $token = substr($authHeader, 7);
+
+        try {
+            $decoded = JWT::decode($token, new Key(getenv('JWT_SECRET'), 'HS256'));
+
+            // Store user in session for access in controllers
+            $session = session();
+            $session->set('user', [
+                'id'         => $decoded->sub,
+                'company_id' => $decoded->company_id,
+                'role'       => $decoded->role,
+            ]);
+
+        } catch (\Exception $e) {
+            return service('response')
+                ->setJSON(['message' => 'Invalid token'])
+                ->setStatusCode(401);
+        }
+
+        return $request;
+    }
+
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    {
+        return $response;
+    }
+}
+```
+
+```php
+<?php
+// app/Filters/AdminFilter.php
+namespace App\Filters;
+
+use CodeIgniter\Filters\FilterInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+
+class AdminFilter implements FilterInterface
+{
+    public function before(RequestInterface $request, $arguments = null)
+    {
+        $session = session();
+        $user = $session->get('user');
+
+        if (!$user || $user['role'] !== 'admin') {
+            return service('response')
+                ->setJSON(['message' => 'Forbidden. Admin access required.'])
+                ->setStatusCode(403);
+        }
+
+        return $request;
+    }
+
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    {
+        return $response;
+    }
+}
+```
+
+```php
+<?php
+// app/Filters/CompanyFilter.php
+namespace App\Filters;
+
+use CodeIgniter\Filters\FilterInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+
+class CompanyFilter implements FilterInterface
+{
+    public function before(RequestInterface $request, $arguments = null)
+    {
+        $session = session();
+        $user = $session->get('user');
+
+        if (!$user || !isset($user['company_id'])) {
+            return service('response')
+                ->setJSON(['message' => 'Company context not available'])
+                ->setStatusCode(401);
+        }
+
+        // Company context is now available via session
+        return $request;
+    }
+
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    {
+        return $response;
+    }
+}
+```
+
+### 6.5 Filter Configuration
+
+```php
+<?php
+// app/Config/Filters.php
+namespace Config;
+
+use CodeIgniter\Config\BaseConfig;
+
+class Filters extends BaseConfig
+{
+    public array $aliases = [
+        'auth'    => \App\Filters\AuthFilter::class,
+        'admin'   => \App\Filters\AdminFilter::class,
+        'company' => \App\Filters\CompanyFilter::class,
+    ];
+
+    public array $globals = [
+        'before' => [],
+        'after'  => [],
+    ];
+
+    public array $methods = [];
+
+    public array $filters = [];
 }
 ```
 
 ---
 
-## 7. Business Logic
-
-### 7.1 Conflict Detection Service
+## 7. Routes Configuration
 
 ```php
-// app/Services/ConflictDetectionService.php
-namespace App\Services;
+<?php
+// app/Config/Routes.php
+use CodeIgniter\Router\RouteCollection;
 
-use App\Models\Schedule;
-use Carbon\Carbon;
-use Illuminate\Support\Collection;
+/**
+ * @var RouteCollection $routes
+ */
 
-class ConflictDetectionService
+// Public auth routes
+$routes->group('api/auth', function ($routes) {
+    $routes->post('register', 'Auth\RegisterController::register');
+    $routes->post('login', 'Auth\LoginController::login');
+});
+
+// Protected routes
+$routes->group('api', ['filter' => 'auth'], function ($routes) {
+
+    // Auth routes (require authentication)
+    $routes->post('auth/logout', 'Auth\LogoutController::logout');
+    $routes->get('auth/me', 'Auth\LoginController::me');
+
+    // Resources
+    $routes->get('resources', 'ResourceController::index');
+    $routes->get('resources/(:num)', 'ResourceController::show/$1');
+    $routes->post('resources', 'ResourceController::create', ['filter' => 'admin']);
+    $routes->put('resources/(:num)', 'ResourceController::update/$1', ['filter' => 'admin']);
+    $routes->delete('resources/(:num)', 'ResourceController::delete/$1', ['filter' => 'admin']);
+
+    // Schedules
+    $routes->get('schedules', 'ScheduleController::index');
+    $routes->get('schedules/conflicts', 'ScheduleController::conflicts');
+    $routes->get('schedules/(:num)', 'ScheduleController::show/$1');
+    $routes->post('schedules', 'ScheduleController::create', ['filter' => 'admin']);
+    $routes->put('schedules/(:num)', 'ScheduleController::update/$1', ['filter' => 'admin']);
+    $routes->delete('schedules/(:num)', 'ScheduleController::delete/$1', ['filter' => 'admin']);
+
+    // Users (Admin only)
+    $routes->group('users', ['filter' => 'admin'], function ($routes) {
+        $routes->get('/', 'UserController::index');
+        $routes->post('/', 'UserController::create');
+        $routes->get('(:num)', 'UserController::show/$1');
+        $routes->put('(:num)', 'UserController::update/$1');
+        $routes->delete('(:num)', 'UserController::delete/$1');
+    });
+});
+```
+
+---
+
+## 8. Business Logic
+
+### 8.1 Conflict Detection Library
+
+```php
+<?php
+// app/Libraries/ConflictDetection.php
+namespace App\Libraries;
+
+use App\Models\ScheduleModel;
+use CodeIgniter\I18n\Time;
+
+class ConflictDetection
 {
-    public function findConflicts(
-        int $resourceId,
-        Carbon $start,
-        Carbon $end,
-        ?int $excludeScheduleId = null
-    ): Collection {
-        $query = Schedule::where('resource_id', $resourceId)
-            ->where(function ($q) use ($start, $end) {
-                // Overlap detection: schedules that start before new end AND end after new start
-                $q->where('start_time', '<', $end)
-                  ->where('end_time', '>', $start);
-            });
+    protected ScheduleModel $scheduleModel;
 
-        if ($excludeScheduleId) {
-            $query->where('id', '!=', $excludeScheduleId);
-        }
-
-        return $query->get();
+    public function __construct()
+    {
+        $this->scheduleModel = new ScheduleModel();
     }
 
+    /**
+     * Find conflicting schedules for a resource
+     */
+    public function findConflicts(
+        int $resourceId,
+        string $startTime,
+        string $endTime,
+        ?int $excludeScheduleId = null
+    ): array {
+        $builder = $this->scheduleModel->builder();
+
+        $builder->where('resource_id', $resourceId)
+                ->where('start_time <', $endTime)
+                ->where('end_time >', $startTime);
+
+        if ($excludeScheduleId) {
+            $builder->where('id !=', $excludeScheduleId);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Check if there are any conflicts
+     */
     public function hasConflicts(
         int $resourceId,
-        Carbon $start,
-        Carbon $end,
+        string $startTime,
+        string $endTime,
         ?int $excludeScheduleId = null
     ): bool {
-        return $this->findConflicts($resourceId, $start, $end, $excludeScheduleId)->isNotEmpty();
+        return count($this->findConflicts($resourceId, $startTime, $endTime, $excludeScheduleId)) > 0;
     }
 }
 ```
 
-### 7.2 Schedule Service
+### 8.2 Schedule Service
 
 ```php
-// app/Services/ScheduleService.php
-namespace App\Services;
+<?php
+// app/Libraries/ScheduleService.php
+namespace App\Libraries;
 
-use App\Models\Schedule;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use App\Models\ScheduleModel;
+use CodeIgniter\I18n\Time;
 
 class ScheduleService
 {
-    public function __construct(
-        private ConflictDetectionService $conflictService
-    ) {}
+    protected ScheduleModel $scheduleModel;
+    protected ConflictDetection $conflictDetection;
 
-    public function createSchedule(array $data): Schedule
+    public function __construct()
     {
-        $start = Carbon::parse($data['start_time']);
-        $end = Carbon::parse($data['end_time']);
-
-        // Check for conflicts
-        if ($this->conflictService->hasConflicts($data['resource_id'], $start, $end)) {
-            throw new \Exception('Schedule conflicts with existing schedules');
-        }
-
-        return DB::transaction(function () use ($data) {
-            $schedule = Schedule::create([
-                'resource_id' => $data['resource_id'],
-                'title' => $data['title'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'notes' => $data['notes'] ?? null,
-                'recurrence_rule' => $data['recurrence_rule'] ?? null,
-                'created_by' => auth()->id(),
-            ]);
-
-            // Handle recurring schedules
-            if (!empty($data['recurrence_rule'])) {
-                $this->createRecurringInstances($schedule);
-            }
-
-            return $schedule;
-        });
+        $this->scheduleModel = new ScheduleModel();
+        $this->conflictDetection = new ConflictDetection();
     }
 
-    private function createRecurringInstances(Schedule $parent): void
+    /**
+     * Create a new schedule with conflict checking
+     */
+    public function createSchedule(array $data): array
     {
-        // Generate instances for next 3 months based on recurrence rule
-        $rule = $parent->recurrence_rule;
-        $start = Carbon::parse($parent->start_time);
-        $end = Carbon::parse($parent->end_time);
-        $duration = $start->diffInMinutes($end);
+        // Check for conflicts
+        if ($this->conflictDetection->hasConflicts(
+            $data['resource_id'],
+            $data['start_time'],
+            $data['end_time']
+        )) {
+            throw new \RuntimeException('Schedule conflicts with existing schedules');
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $scheduleId = $this->scheduleModel->insert($data);
+
+        // Handle recurring schedules
+        if (!empty($data['recurrence_rule'])) {
+            $this->createRecurringInstances($scheduleId, $data);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            throw new \RuntimeException('Failed to create schedule');
+        }
+
+        return $this->scheduleModel->find($scheduleId);
+    }
+
+    /**
+     * Create recurring schedule instances
+     */
+    private function createRecurringInstances(int $parentId, array $data): void
+    {
+        $rule = $data['recurrence_rule'];
+        $start = Time::parse($data['start_time']);
+        $end = Time::parse($data['end_time']);
+        $duration = $start->difference($end)->getMinutes();
 
         $instances = [];
-        $limit = Carbon::now()->addMonths(3);
+        $limit = Time::now()->addMonths(3);
 
-        while ($start->lt($limit)) {
+        while ($start->isBefore($limit)) {
             $start = match ($rule) {
-                'daily' => $start->addDay(),
-                'weekly' => $start->addWeek(),
-                'monthly' => $start->addMonth(),
-                default => $limit, // Exit loop for unknown rules
+                'daily'   => $start->addDays(1),
+                'weekly'  => $start->addDays(7),
+                'monthly' => $start->addMonths(1),
+                default   => $limit,
             };
 
-            if ($start->lt($limit)) {
+            if ($start->isBefore($limit)) {
+                $instanceEnd = $start->addMinutes($duration);
+
                 $instances[] = [
-                    'company_id' => $parent->company_id,
-                    'resource_id' => $parent->resource_id,
-                    'created_by' => $parent->created_by,
-                    'title' => $parent->title,
-                    'start_time' => $start->toDateTimeString(),
-                    'end_time' => $start->copy()->addMinutes($duration)->toDateTimeString(),
-                    'notes' => $parent->notes,
-                    'parent_schedule_id' => $parent->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'company_id'         => $data['company_id'],
+                    'resource_id'        => $data['resource_id'],
+                    'created_by'         => $data['created_by'],
+                    'title'              => $data['title'],
+                    'start_time'         => $start->toDateTimeString(),
+                    'end_time'           => $instanceEnd->toDateTimeString(),
+                    'notes'              => $data['notes'] ?? null,
+                    'parent_schedule_id' => $parentId,
+                    'created_at'         => Time::now()->toDateTimeString(),
+                    'updated_at'         => Time::now()->toDateTimeString(),
                 ];
             }
         }
 
         if (!empty($instances)) {
-            Schedule::insert($instances);
+            $this->scheduleModel->insertBatch($instances);
         }
     }
+
+    /**
+     * Update a schedule
+     */
+    public function updateSchedule(int $id, array $data): array
+    {
+        // Check for conflicts (exclude self)
+        if (isset($data['start_time']) && isset($data['end_time'])) {
+            if ($this->conflictDetection->hasConflicts(
+                $data['resource_id'],
+                $data['start_time'],
+                $data['end_time'],
+                $id
+            )) {
+                throw new \RuntimeException('Schedule conflicts with existing schedules');
+            }
+        }
+
+        $this->scheduleModel->update($id, $data);
+        return $this->scheduleModel->find($id);
+    }
 }
 ```
 
 ---
 
-## 8. Validation Rules
+## 9. Validation
 
-### 8.1 Store Resource Request
+### 9.1 Custom Validation Configuration
 
 ```php
-// app/Http/Requests/StoreResourceRequest.php
-namespace App\Http\Requests;
+<?php
+// app/Config/Validation.php
+namespace Config;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use CodeIgniter\Config\BaseConfig;
+use CodeIgniter\Validation\StrictRules\CreditCardRules;
+use CodeIgniter\Validation\StrictRules\FileRules;
+use CodeIgniter\Validation\StrictRules\FormatRules;
+use CodeIgniter\Validation\StrictRules\Rules;
 
-class StoreResourceRequest extends FormRequest
+class Validation extends BaseConfig
 {
-    public function authorize(): bool
-    {
-        return $this->user()->role === 'admin';
-    }
+    public array $ruleSets = [
+        Rules::class,
+        FormatRules::class,
+        FileRules::class,
+        CreditCardRules::class,
+    ];
 
-    public function rules(): array
-    {
-        return [
-            'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', Rule::in(['person', 'vehicle', 'equipment'])],
-            'metadata' => ['nullable', 'array'],
-            'availability' => ['nullable', 'array'],
-            'is_active' => ['boolean'],
-        ];
-    }
+    // Resource validation rules
+    public array $resource = [
+        'name' => 'required|max_length[255]',
+        'type' => 'required|in_list[person,vehicle,equipment]',
+        'is_active' => 'permit_empty|in_list[0,1,true,false]',
+    ];
+
+    public array $resource_errors = [
+        'name' => [
+            'required' => 'Resource name is required.',
+            'max_length' => 'Resource name cannot exceed 255 characters.',
+        ],
+        'type' => [
+            'required' => 'Resource type is required.',
+            'in_list' => 'Type must be person, vehicle, or equipment.',
+        ],
+    ];
+
+    // Schedule validation rules
+    public array $schedule = [
+        'resource_id' => 'required|integer',
+        'title' => 'required|max_length[255]',
+        'start_time' => 'required|valid_date',
+        'end_time' => 'required|valid_date',
+        'recurrence_rule' => 'permit_empty|in_list[daily,weekly,monthly]',
+    ];
+
+    public array $schedule_errors = [
+        'resource_id' => [
+            'required' => 'Resource is required.',
+            'integer' => 'Invalid resource ID.',
+        ],
+        'title' => [
+            'required' => 'Title is required.',
+            'max_length' => 'Title cannot exceed 255 characters.',
+        ],
+        'end_time' => [
+            'valid_date' => 'End time must be a valid date.',
+        ],
+    ];
+
+    // User validation rules
+    public array $user = [
+        'name' => 'required|max_length[255]',
+        'email' => 'required|valid_email|max_length[255]',
+        'password' => 'required|min_length[8]',
+        'role' => 'permit_empty|in_list[admin,member]',
+    ];
+
+    // Login validation
+    public array $login = [
+        'email' => 'required|valid_email',
+        'password' => 'required',
+    ];
+
+    // Registration validation
+    public array $register = [
+        'company_name' => 'required|max_length[255]',
+        'name' => 'required|max_length[255]',
+        'email' => 'required|valid_email|is_unique[users.email]',
+        'password' => 'required|min_length[8]',
+        'password_confirmation' => 'required|matches[password]',
+    ];
 }
 ```
 
-### 8.2 Store Schedule Request
+### 9.2 Controller Validation Example
 
 ```php
-// app/Http/Requests/StoreScheduleRequest.php
-namespace App\Http\Requests;
+<?php
+// app/Controllers/ResourceController.php
+namespace App\Controllers;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use App\Models\ResourceModel;
+use CodeIgniter\RESTful\ResourceController as BaseResourceController;
 
-class StoreScheduleRequest extends FormRequest
+class ResourceController extends BaseResourceController
 {
-    public function authorize(): bool
+    protected ResourceModel $resourceModel;
+
+    public function __construct()
     {
-        return $this->user()->role === 'admin';
+        $this->resourceModel = new ResourceModel();
     }
 
-    public function rules(): array
+    public function index()
     {
-        return [
-            'resource_id' => [
-                'required',
-                'integer',
-                Rule::exists('resources', 'id')->where('company_id', $this->user()->company_id),
+        $session = session();
+        $user = $session->get('user');
+
+        $filters = [
+            'type'      => $this->request->getGet('type'),
+            'is_active' => $this->request->getGet('is_active'),
+            'search'    => $this->request->getGet('search'),
+        ];
+
+        $perPage = (int) ($this->request->getGet('per_page') ?? 25);
+
+        $resources = $this->resourceModel
+            ->getFiltered($user['company_id'], $filters)
+            ->paginate($perPage);
+
+        $pager = $this->resourceModel->pager;
+
+        return $this->respond([
+            'data' => $resources,
+            'meta' => [
+                'current_page' => $pager->getCurrentPage(),
+                'per_page'     => $perPage,
+                'total'        => $pager->getTotal(),
+                'last_page'    => $pager->getPageCount(),
             ],
-            'title' => ['required', 'string', 'max:255'],
-            'start_time' => ['required', 'date', 'after_or_equal:now'],
-            'end_time' => ['required', 'date', 'after:start_time'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'recurrence_rule' => ['nullable', Rule::in(['daily', 'weekly', 'monthly'])],
-        ];
+        ]);
     }
 
-    public function messages(): array
+    public function create()
     {
-        return [
-            'end_time.after' => 'End time must be after start time.',
-            'resource_id.exists' => 'The selected resource does not exist.',
+        $validation = \Config\Services::validation();
+
+        if (!$this->validate('resource')) {
+            return $this->failValidation($validation->getErrors());
+        }
+
+        $session = session();
+        $user = $session->get('user');
+
+        $data = [
+            'company_id'   => $user['company_id'],
+            'name'         => $this->request->getPost('name'),
+            'type'         => $this->request->getPost('type'),
+            'metadata'     => $this->request->getPost('metadata'),
+            'availability' => $this->request->getPost('availability'),
+            'is_active'    => $this->request->getPost('is_active') ?? true,
         ];
+
+        $id = $this->resourceModel->insert($data);
+
+        if (!$id) {
+            return $this->failServerError('Failed to create resource');
+        }
+
+        $resource = $this->resourceModel->find($id);
+
+        return $this->respondCreated([
+            'data' => $resource,
+        ]);
+    }
+
+    public function show($id = null)
+    {
+        $session = session();
+        $user = $session->get('user');
+
+        $resource = $this->resourceModel->findByCompany($id, $user['company_id']);
+
+        if (!$resource) {
+            return $this->failNotFound('Resource not found');
+        }
+
+        return $this->respond([
+            'data' => $resource,
+        ]);
+    }
+
+    public function update($id = null)
+    {
+        $session = session();
+        $user = $session->get('user');
+
+        $resource = $this->resourceModel->findByCompany($id, $user['company_id']);
+
+        if (!$resource) {
+            return $this->failNotFound('Resource not found');
+        }
+
+        $data = $this->request->getJSON(true);
+
+        if (!$this->resourceModel->update($id, $data)) {
+            return $this->failValidation($this->resourceModel->errors());
+        }
+
+        return $this->respond([
+            'data' => $this->resourceModel->find($id),
+        ]);
+    }
+
+    public function delete($id = null)
+    {
+        $session = session();
+        $user = $session->get('user');
+
+        $resource = $this->resourceModel->findByCompany($id, $user['company_id']);
+
+        if (!$resource) {
+            return $this->failNotFound('Resource not found');
+        }
+
+        $this->resourceModel->delete($id);
+
+        return $this->respondNoContent();
     }
 }
 ```
 
 ---
 
-## 9. Error Responses
+## 10. Error Responses
 
-### 9.1 Standard Error Format
+### 10.1 Standard Error Format
 
 ```json
 {
@@ -858,7 +1550,7 @@ class StoreScheduleRequest extends FormRequest
 }
 ```
 
-### 9.2 HTTP Status Codes
+### 10.2 HTTP Status Codes
 
 | Code | Meaning |
 |------|---------|
@@ -874,80 +1566,115 @@ class StoreScheduleRequest extends FormRequest
 
 ---
 
-## 10. Security
+## 11. Security
 
-### 10.1 Authentication
-- All endpoints except `/auth/register` and `/auth/login` require Bearer token
+### 11.1 Authentication
+- All endpoints except `/auth/register` and `/auth/login` require Bearer token (JWT)
 - Tokens expire after 24 hours (configurable)
 - Tokens can be revoked via logout
 
-### 10.2 Authorization
+### 11.2 Authorization
 - Admin role required for create/update/delete operations
 - Member role can only read resources and schedules
-- All queries scoped to user's company automatically
+- All queries scoped to user's company via Filters and Model methods
 
-### 10.3 Data Protection
-- Passwords hashed with bcrypt
-- SQL injection prevented via Eloquent ORM
+### 11.3 Data Protection
+- Passwords hashed with `password_hash()` (bcrypt)
+- SQL injection prevented via Query Builder and prepared statements
 - XSS prevented via JSON-only API responses
-- Rate limiting on authentication endpoints
+- Rate limiting available via CodeIgniter Throttler
 
 ---
 
-## 11. Environment Variables
+## 12. Environment Variables
 
 ```env
-# .env.example
-APP_NAME=SchedulePro
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost:8000
+# .env
+CI_ENVIRONMENT = production
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=schedulepro
-DB_USERNAME=root
-DB_PASSWORD=
+app.baseURL = 'https://api.schedulepro.com/'
 
-SANCTUM_TOKEN_EXPIRATION=1440
+database.default.hostname = localhost
+database.default.database = schedulepro
+database.default.username = root
+database.default.password =
+database.default.DBDriver = MySQLi
+database.default.port = 3306
 
-QUEUE_CONNECTION=database
+JWT_SECRET = your-256-bit-secret-key-here
+JWT_EXPIRATION = 86400
 
-CACHE_DRIVER=file
-SESSION_DRIVER=file
+session.driver = CodeIgniter\Session\Handlers\FileHandler
+session.cookieName = ci_session
+session.savePath = WRITEPATH/session
 ```
 
 ---
 
-## 12. Deployment
+## 13. Deployment
 
-### 12.1 Requirements
-- PHP 8.2+
+### 13.1 Requirements
+- PHP 8.1+
 - MySQL 8.0+ or MariaDB 10.6+
 - Composer
-- Node.js (for asset compilation if needed)
+- Writable directories: `writable/`
 
-### 12.2 Installation Steps
+### 13.2 Installation Steps
 ```bash
-composer install --optimize-autoloader --no-dev
-php artisan key:generate
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# Install dependencies
+composer install --no-dev --optimize-autoloader
+
+# Set environment
+cp env .env
+# Edit .env with production settings
+
+# Run migrations
+php spark migrate
+
+# Clear and rebuild caches
+php spark cache:clear
+
+# Ensure writable permissions
+chmod -R 755 writable/
 ```
 
-### 12.3 Hosting Options
-- Laravel Forge + DigitalOcean/AWS
-- Laravel Vapor (serverless)
-- Traditional VPS with Nginx + PHP-FPM
+### 13.3 Spark CLI Commands
+```bash
+# Run development server
+php spark serve
+
+# Run migrations
+php spark migrate
+php spark migrate:rollback
+php spark migrate:status
+
+# Database seeding
+php spark db:seed DatabaseSeeder
+
+# Create new migration
+php spark make:migration CreateTableName
+
+# Create new controller
+php spark make:controller ControllerName
+
+# Create new model
+php spark make:model ModelName
+
+# View routes
+php spark routes
+```
+
+### 13.4 Hosting Options
+- Traditional VPS with Apache/Nginx + PHP-FPM
+- DigitalOcean App Platform
+- AWS Elastic Beanstalk
+- Shared hosting (with PHP 8.1+ support)
 
 ---
 
-## 13. Testing
+## 14. Testing
 
-### 13.1 Test Coverage Required
+### 14.1 Test Coverage Required
 - Authentication flow (register, login, logout)
 - CRUD operations for resources
 - CRUD operations for schedules
@@ -955,36 +1682,106 @@ php artisan view:cache
 - Multi-tenant isolation
 - Role-based access control
 
-### 13.2 Example Test
+### 14.2 Example Test
 
 ```php
+<?php
 // tests/Feature/ScheduleConflictTest.php
-public function test_prevents_overlapping_schedules(): void
+namespace Tests\Feature;
+
+use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\Test\FeatureTestTrait;
+use CodeIgniter\Test\DatabaseTestTrait;
+use App\Models\UserModel;
+use App\Models\ResourceModel;
+use App\Models\ScheduleModel;
+
+class ScheduleConflictTest extends CIUnitTestCase
 {
-    $user = User::factory()->admin()->create();
-    $resource = Resource::factory()->create(['company_id' => $user->company_id]);
+    use FeatureTestTrait;
+    use DatabaseTestTrait;
 
-    // Create first schedule
-    Schedule::factory()->create([
-        'company_id' => $user->company_id,
-        'resource_id' => $resource->id,
-        'start_time' => '2026-01-25 10:00:00',
-        'end_time' => '2026-01-25 12:00:00',
-    ]);
+    protected $refresh = true;
 
-    // Attempt overlapping schedule
-    $response = $this->actingAs($user)->postJson('/api/schedules', [
-        'resource_id' => $resource->id,
-        'title' => 'Overlapping Schedule',
-        'start_time' => '2026-01-25 11:00:00',
-        'end_time' => '2026-01-25 13:00:00',
-    ]);
+    public function testPreventsOverlappingSchedules(): void
+    {
+        // Create test data
+        $userModel = new UserModel();
+        $resourceModel = new ResourceModel();
+        $scheduleModel = new ScheduleModel();
 
-    $response->assertStatus(422);
+        $companyId = 1; // Assuming seeded company
+
+        $userId = $userModel->insert([
+            'company_id' => $companyId,
+            'email' => 'admin@test.com',
+            'password' => password_hash('password', PASSWORD_DEFAULT),
+            'name' => 'Test Admin',
+            'role' => 'admin',
+        ]);
+
+        $resourceId = $resourceModel->insert([
+            'company_id' => $companyId,
+            'name' => 'Test Resource',
+            'type' => 'person',
+        ]);
+
+        // Create first schedule
+        $scheduleModel->insert([
+            'company_id' => $companyId,
+            'resource_id' => $resourceId,
+            'created_by' => $userId,
+            'title' => 'Existing Schedule',
+            'start_time' => '2026-01-25 10:00:00',
+            'end_time' => '2026-01-25 12:00:00',
+        ]);
+
+        // Generate JWT token for auth
+        $token = $this->generateTestToken($userId, $companyId, 'admin');
+
+        // Attempt overlapping schedule
+        $result = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->post('/api/schedules', [
+            'resource_id' => $resourceId,
+            'title' => 'Overlapping Schedule',
+            'start_time' => '2026-01-25 11:00:00',
+            'end_time' => '2026-01-25 13:00:00',
+        ]);
+
+        $result->assertStatus(422);
+    }
+
+    private function generateTestToken(int $userId, int $companyId, string $role): string
+    {
+        // Generate test JWT token
+        $payload = [
+            'sub' => $userId,
+            'company_id' => $companyId,
+            'role' => $role,
+            'exp' => time() + 3600,
+        ];
+
+        return \Firebase\JWT\JWT::encode($payload, getenv('JWT_SECRET'), 'HS256');
+    }
 }
+```
+
+### 14.3 Running Tests
+
+```bash
+# Run all tests
+php spark test
+
+# Run specific test file
+php spark test tests/Feature/ScheduleConflictTest.php
+
+# Run with coverage
+php spark test --coverage-html writable/coverage
 ```
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 2.0*
+*Framework: CodeIgniter 4*
 *Last Updated: January 2026*

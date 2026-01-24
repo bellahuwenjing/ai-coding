@@ -93,21 +93,13 @@ The first defines the product; the second defines the work to build it.
 
 ### Prompt 8
 
-**User:** Create a local file to store the prompt history. Also include your response to my last question.
-
-**Response:** Created this file (`prompt-history.md`).
-
----
-
-### Prompt 9
-
 **User:** change of plan: Separate the original doc (docs/prd/landing-page.md) into 3 new docs for landing, frontend and backend: 1. landing: i've downloaded a react app template - please just generate a prd on how to modify the copy 2. frontend: we will build a new react + backbone.js app 3. backend: we will build a new php server Generate production ready prd; ask any questions if need to
 
 **Response:** Entered plan mode to analyze the existing React template at `D:\JR AI coding\landing-page` and design the approach for 3 separate PRDs.
 
 ---
 
-### Prompt 10
+### Prompt 9
 
 **User:** (Selected answers to clarification questions via AskUserQuestion tool)
 - "What is the product name?" → SchedulePro
@@ -118,7 +110,7 @@ The first defines the product; the second defines the work to build it.
 
 ---
 
-### Prompt 11
+### Prompt 10
 
 **User:** (Approved the plan via ExitPlanMode)
 
@@ -129,7 +121,7 @@ The first defines the product; the second defines the work to build it.
 
 ---
 
-### Prompt 12
+### Prompt 11
 
 **User:** Implement the following plan: [full plan text for Create 3 Separate PRDs for SchedulePro]
 
@@ -143,8 +135,30 @@ The first defines the product; the second defines the work to build it.
 
 ---
 
-### Prompt 13
+### Prompt 12
 
-**User:** update the prompt-history.md to include the latest prompts.
+**User:** Update Backend PRD from Laravel to CodeIgniter 4
 
-**Response:** Added prompts 9-13 documenting the planning session, requirement clarifications, and PRD creation.
+**Response:** Completely rewrote `docs/prd/PRD-backend.md` replacing all Laravel-specific code and architecture with CodeIgniter 4 equivalents:
+
+| Laravel | CodeIgniter 4 |
+|---------|---------------|
+| Laravel 11 | CodeIgniter 4.x |
+| Laravel Sanctum | Custom JWT with firebase/php-jwt |
+| Laravel Queue | CodeIgniter Tasks |
+| Eloquent ORM | CI4 Model + Query Builder |
+| Artisan CLI | Spark CLI |
+| Middleware | Filters |
+| FormRequest | CI4 Validation config |
+| Global Scopes | Manual company scoping in Models |
+
+Key structural changes:
+- Project structure updated to CI4 conventions (`app/Filters/`, `app/Libraries/`, `writable/`)
+- Database migrations rewritten in CI4 format using `$this->forge`
+- Models now extend `CodeIgniter\Model` with `$allowedFields`, `$validationRules`, `$casts`
+- Authentication via JWT tokens instead of Sanctum
+- Routes defined in `app/Config/Routes.php` with filter assignments
+- Validation rules defined in `app/Config/Validation.php`
+- Deployment uses `php spark` commands instead of `php artisan`
+
+---
