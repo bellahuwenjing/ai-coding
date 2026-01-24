@@ -51,7 +51,8 @@ schpro-backend/
 │   │   ├── CompanyModel.php
 │   │   ├── UserModel.php
 │   │   ├── ResourceModel.php
-│   │   └── BookingModel.php
+│   │   ├── BookingModel.php
+│   │   └── BookingResourceModel.php
 │   ├── Libraries/
 │   │   ├── ConflictDetection.php
 │   │   └── BookingService.php
@@ -226,7 +227,6 @@ Equipment:
 CREATE TABLE bookings (
     id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     company_id BIGINT UNSIGNED NOT NULL,
-    resource_id BIGINT UNSIGNED NOT NULL,
     created_by BIGINT UNSIGNED NOT NULL,
     title VARCHAR(255) NOT NULL,
     start_time DATETIME NOT NULL,
@@ -238,18 +238,31 @@ CREATE TABLE bookings (
     updated_at TIMESTAMP NULL,
 
     INDEX idx_company_id (company_id),
-    INDEX idx_resource_id (resource_id),
     INDEX idx_start_time (start_time),
     INDEX idx_end_time (end_time),
-    INDEX idx_time_range (resource_id, start_time, end_time),
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-    FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (parent_booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 );
 ```
 
-### 4.6 Database Migrations (CI4 Format)
+### 4.6 booking_resources (Junction Table)
+
+```sql
+CREATE TABLE booking_resources (
+    booking_id BIGINT UNSIGNED NOT NULL,
+    resource_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL,
+
+    PRIMARY KEY (booking_id, resource_id),
+    INDEX idx_resource_id (resource_id),
+    INDEX idx_time_range (resource_id),
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
+);
+```
+
+### 4.7 Database Migrations (CI4 Format)
 
 ```php
 <?php
@@ -435,6 +448,122 @@ class CreateResourcesTable extends Migration
 }
 ```
 
+```php
+<?php
+// app/Database/Migrations/2026-01-01-000004_CreateBookingsTable.php
+namespace App\Database\Migrations;
+
+use CodeIgniter\Database\Migration;
+
+class CreateBookingsTable extends Migration
+{
+    public function up()
+    {
+        $this->forge->addField([
+            'id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+                'auto_increment' => true,
+            ],
+            'company_id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+            ],
+            'created_by' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+            ],
+            'title' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+            ],
+            'start_time' => [
+                'type' => 'DATETIME',
+            ],
+            'end_time' => [
+                'type' => 'DATETIME',
+            ],
+            'notes' => [
+                'type' => 'TEXT',
+                'null' => true,
+            ],
+            'recurrence_rule' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+                'null' => true,
+            ],
+            'parent_booking_id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+                'null' => true,
+            ],
+            'created_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+            'updated_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+        ]);
+
+        $this->forge->addPrimaryKey('id');
+        $this->forge->addKey('company_id', false, false, 'idx_company_id');
+        $this->forge->addKey('start_time', false, false, 'idx_start_time');
+        $this->forge->addKey('end_time', false, false, 'idx_end_time');
+        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('created_by', 'users', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('parent_booking_id', 'bookings', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->createTable('bookings');
+    }
+
+    public function down()
+    {
+        $this->forge->dropTable('bookings');
+    }
+}
+```
+
+```php
+<?php
+// app/Database/Migrations/2026-01-01-000005_CreateBookingResourcesTable.php
+namespace App\Database\Migrations;
+
+use CodeIgniter\Database\Migration;
+
+class CreateBookingResourcesTable extends Migration
+{
+    public function up()
+    {
+        $this->forge->addField([
+            'booking_id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+            ],
+            'resource_id' => [
+                'type' => 'BIGINT',
+                'unsigned' => true,
+            ],
+            'created_at' => [
+                'type' => 'TIMESTAMP',
+                'null' => true,
+            ],
+        ]);
+
+        $this->forge->addPrimaryKey(['booking_id', 'resource_id']);
+        $this->forge->addKey('resource_id', false, false, 'idx_resource_id');
+        $this->forge->addForeignKey('booking_id', 'bookings', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('resource_id', 'resources', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->createTable('booking_resources');
+    }
+
+    public function down()
+    {
+        $this->forge->dropTable('booking_resources');
+    }
+}
+```
+
 ---
 
 ## 5. API Endpoints
@@ -603,7 +732,7 @@ Response (201):
 **GET /api/bookings**
 
 Query Parameters:
-- `resource_id` (integer): Filter by resource
+- `resource_id` (integer): Filter by resource (returns bookings containing this resource)
 - `resource_type` (string): Filter by resource type
 - `start_date` (date): Start of date range (required)
 - `end_date` (date): End of date range (required)
@@ -615,12 +744,18 @@ Response (200):
     "data": [
         {
             "id": 1,
-            "resource_id": 3,
-            "resource": {
-                "id": 3,
-                "name": "John Smith",
-                "type": "person"
-            },
+            "resources": [
+                {
+                    "id": 3,
+                    "name": "John Smith",
+                    "type": "person"
+                },
+                {
+                    "id": 5,
+                    "name": "Ford F-150",
+                    "type": "vehicle"
+                }
+            ],
             "title": "Site Visit - 123 Main St",
             "start_time": "2026-01-22T09:00:00Z",
             "end_time": "2026-01-22T12:00:00Z",
@@ -643,8 +778,8 @@ Response (200):
 Request:
 ```json
 {
-    "resource_id": 3,
-    "title": "Equipment Maintenance",
+    "resource_ids": [3, 5, 12],
+    "title": "Site Visit",
     "start_time": "2026-01-25T10:00:00",
     "end_time": "2026-01-25T14:00:00",
     "notes": "Quarterly maintenance check",
@@ -657,8 +792,24 @@ Response (201):
 {
     "data": {
         "id": 15,
-        "resource_id": 3,
-        "title": "Equipment Maintenance",
+        "resources": [
+            {
+                "id": 3,
+                "name": "John Smith",
+                "type": "person"
+            },
+            {
+                "id": 5,
+                "name": "Ford F-150",
+                "type": "vehicle"
+            },
+            {
+                "id": 12,
+                "name": "Excavator #2",
+                "type": "equipment"
+            }
+        ],
+        "title": "Site Visit",
         "start_time": "2026-01-25T10:00:00Z",
         "end_time": "2026-01-25T14:00:00Z",
         "notes": "Quarterly maintenance check",
@@ -672,7 +823,7 @@ Response (201):
 **GET /api/bookings/conflicts**
 
 Query Parameters:
-- `resource_id` (integer, required): Resource to check
+- `resource_ids` (array, required): Resources to check (e.g., `resource_ids[]=3&resource_ids[]=5`)
 - `start_time` (datetime, required): Proposed start
 - `end_time` (datetime, required): Proposed end
 - `exclude_id` (integer): Booking ID to exclude (for updates)
@@ -683,10 +834,16 @@ Response (200):
     "has_conflicts": true,
     "conflicts": [
         {
-            "id": 12,
-            "title": "Existing Appointment",
-            "start_time": "2026-01-25T11:00:00Z",
-            "end_time": "2026-01-25T13:00:00Z"
+            "resource_id": 3,
+            "resource_name": "John Smith",
+            "bookings": [
+                {
+                    "id": 12,
+                    "title": "Existing Appointment",
+                    "start_time": "2026-01-25T11:00:00Z",
+                    "end_time": "2026-01-25T13:00:00Z"
+                }
+            ]
         }
     ]
 }
@@ -840,12 +997,17 @@ class ResourceModel extends BaseModel
     }
 
     /**
-     * Get bookings for this resource
+     * Get bookings for this resource via junction table
      */
     public function getBookings(int $resourceId)
     {
-        $bookingModel = new BookingModel();
-        return $bookingModel->where('resource_id', $resourceId)->findAll();
+        $db = \Config\Database::connect();
+        return $db->table('bookings b')
+                  ->select('b.*')
+                  ->join('booking_resources br', 'br.booking_id = b.id')
+                  ->where('br.resource_id', $resourceId)
+                  ->get()
+                  ->getResultArray();
     }
 }
 ```
@@ -864,7 +1026,6 @@ class BookingModel extends BaseModel
     protected $returnType    = 'array';
     protected $allowedFields = [
         'company_id',
-        'resource_id',
         'created_by',
         'title',
         'start_time',
@@ -875,7 +1036,6 @@ class BookingModel extends BaseModel
     ];
 
     protected $validationRules = [
-        'resource_id' => 'required|integer',
         'title'       => 'required|max_length[255]',
         'start_time'  => 'required|valid_date',
         'end_time'    => 'required|valid_date',
@@ -896,6 +1056,43 @@ class BookingModel extends BaseModel
     }
 
     /**
+     * Get resources attached to a booking
+     */
+    public function getResources(int $bookingId): array
+    {
+        $db = \Config\Database::connect();
+        return $db->table('booking_resources br')
+                  ->select('r.id, r.name, r.type')
+                  ->join('resources r', 'r.id = br.resource_id')
+                  ->where('br.booking_id', $bookingId)
+                  ->get()
+                  ->getResultArray();
+    }
+
+    /**
+     * Attach resources to a booking
+     */
+    public function attachResources(int $bookingId, array $resourceIds): bool
+    {
+        $bookingResourceModel = new BookingResourceModel();
+
+        // Remove existing resources
+        $bookingResourceModel->where('booking_id', $bookingId)->delete();
+
+        // Attach new resources
+        $data = [];
+        foreach ($resourceIds as $resourceId) {
+            $data[] = [
+                'booking_id'  => $bookingId,
+                'resource_id' => $resourceId,
+                'created_at'  => date('Y-m-d H:i:s'),
+            ];
+        }
+
+        return $bookingResourceModel->insertBatch($data) !== false;
+    }
+
+    /**
      * Get bookings within a date range
      */
     public function getByDateRange(int $companyId, string $startDate, string $endDate, array $filters = [])
@@ -904,28 +1101,123 @@ class BookingModel extends BaseModel
              ->where('start_time >=', $startDate)
              ->where('end_time <=', $endDate);
 
+        // Filter by resource_id using junction table
         if (!empty($filters['resource_id'])) {
-            $this->where('resource_id', $filters['resource_id']);
+            $this->join('booking_resources br', 'br.booking_id = bookings.id')
+                 ->where('br.resource_id', $filters['resource_id']);
         }
 
         return $this->findAll();
     }
 
     /**
-     * Get booking with resource details
+     * Get booking with resources details
      */
-    public function getWithResource(int $id, int $companyId)
+    public function getWithResources(int $id, int $companyId): ?array
     {
-        return $this->select('bookings.*, resources.name as resource_name, resources.type as resource_type')
-                    ->join('resources', 'resources.id = bookings.resource_id')
-                    ->where('bookings.id', $id)
-                    ->where('bookings.company_id', $companyId)
-                    ->first();
+        $booking = $this->where('id', $id)
+                        ->where('company_id', $companyId)
+                        ->first();
+
+        if ($booking) {
+            $booking['resources'] = $this->getResources($id);
+        }
+
+        return $booking;
     }
 }
 ```
 
-### 6.4 Filters (Middleware equivalent)
+### 6.4 Booking Resource Model (Junction Table)
+
+```php
+<?php
+// app/Models/BookingResourceModel.php
+namespace App\Models;
+
+use CodeIgniter\Model;
+
+class BookingResourceModel extends Model
+{
+    protected $table         = 'booking_resources';
+    protected $primaryKey    = ['booking_id', 'resource_id'];
+    protected $returnType    = 'array';
+    protected $useTimestamps = false;
+    protected $allowedFields = [
+        'booking_id',
+        'resource_id',
+        'created_at'
+    ];
+
+    /**
+     * Get all resource IDs for a booking
+     */
+    public function getResourceIds(int $bookingId): array
+    {
+        return array_column(
+            $this->where('booking_id', $bookingId)->findAll(),
+            'resource_id'
+        );
+    }
+
+    /**
+     * Get all booking IDs for a resource
+     */
+    public function getBookingIds(int $resourceId): array
+    {
+        return array_column(
+            $this->where('resource_id', $resourceId)->findAll(),
+            'booking_id'
+        );
+    }
+
+    /**
+     * Check if a resource is attached to a booking
+     */
+    public function isAttached(int $bookingId, int $resourceId): bool
+    {
+        return $this->where('booking_id', $bookingId)
+                    ->where('resource_id', $resourceId)
+                    ->countAllResults() > 0;
+    }
+
+    /**
+     * Attach multiple resources to a booking
+     */
+    public function attachMany(int $bookingId, array $resourceIds): bool
+    {
+        $data = [];
+        foreach ($resourceIds as $resourceId) {
+            $data[] = [
+                'booking_id'  => $bookingId,
+                'resource_id' => $resourceId,
+                'created_at'  => date('Y-m-d H:i:s'),
+            ];
+        }
+
+        return $this->insertBatch($data) !== false;
+    }
+
+    /**
+     * Detach all resources from a booking
+     */
+    public function detachAll(int $bookingId): bool
+    {
+        return $this->where('booking_id', $bookingId)->delete();
+    }
+
+    /**
+     * Sync resources for a booking (remove old, add new)
+     */
+    public function sync(int $bookingId, array $resourceIds): bool
+    {
+        $this->detachAll($bookingId);
+        return $this->attachMany($bookingId, $resourceIds);
+    }
+}
+```
+
+### 6.5 Filters (Middleware equivalent)
 
 ```php
 <?php
@@ -1044,7 +1336,7 @@ class CompanyFilter implements FilterInterface
 }
 ```
 
-### 6.5 Filter Configuration
+### 6.6 Filter Configuration
 
 ```php
 <?php
@@ -1136,49 +1428,101 @@ $routes->group('api', ['filter' => 'auth'], function ($routes) {
 namespace App\Libraries;
 
 use App\Models\BookingModel;
+use App\Models\BookingResourceModel;
+use App\Models\ResourceModel;
 use CodeIgniter\I18n\Time;
 
 class ConflictDetection
 {
     protected BookingModel $bookingModel;
+    protected BookingResourceModel $bookingResourceModel;
+    protected ResourceModel $resourceModel;
 
     public function __construct()
     {
         $this->bookingModel = new BookingModel();
+        $this->bookingResourceModel = new BookingResourceModel();
+        $this->resourceModel = new ResourceModel();
     }
 
     /**
-     * Find conflicting bookings for a resource
+     * Find conflicting bookings for a single resource
      */
-    public function findConflicts(
+    public function findConflictsForResource(
         int $resourceId,
         string $startTime,
         string $endTime,
         ?int $excludeBookingId = null
     ): array {
-        $builder = $this->bookingModel->builder();
+        $db = \Config\Database::connect();
+        $builder = $db->table('bookings b');
 
-        $builder->where('resource_id', $resourceId)
-                ->where('start_time <', $endTime)
-                ->where('end_time >', $startTime);
+        $builder->select('b.*')
+                ->join('booking_resources br', 'br.booking_id = b.id')
+                ->where('br.resource_id', $resourceId)
+                ->where('b.start_time <', $endTime)
+                ->where('b.end_time >', $startTime);
 
         if ($excludeBookingId) {
-            $builder->where('id !=', $excludeBookingId);
+            $builder->where('b.id !=', $excludeBookingId);
         }
 
         return $builder->get()->getResultArray();
     }
 
     /**
-     * Check if there are any conflicts
+     * Find conflicting bookings for multiple resources
+     * Returns conflicts grouped by resource_id
+     */
+    public function findConflicts(
+        array $resourceIds,
+        string $startTime,
+        string $endTime,
+        ?int $excludeBookingId = null
+    ): array {
+        $conflicts = [];
+
+        foreach ($resourceIds as $resourceId) {
+            $resourceConflicts = $this->findConflictsForResource(
+                $resourceId,
+                $startTime,
+                $endTime,
+                $excludeBookingId
+            );
+
+            if (!empty($resourceConflicts)) {
+                $resource = $this->resourceModel->find($resourceId);
+                $conflicts[] = [
+                    'resource_id' => $resourceId,
+                    'resource_name' => $resource['name'] ?? 'Unknown',
+                    'bookings' => $resourceConflicts,
+                ];
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
+     * Check if there are any conflicts for any of the resources
      */
     public function hasConflicts(
-        int $resourceId,
+        array $resourceIds,
         string $startTime,
         string $endTime,
         ?int $excludeBookingId = null
     ): bool {
-        return count($this->findConflicts($resourceId, $startTime, $endTime, $excludeBookingId)) > 0;
+        foreach ($resourceIds as $resourceId) {
+            if (!empty($this->findConflictsForResource(
+                $resourceId,
+                $startTime,
+                $endTime,
+                $excludeBookingId
+            ))) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 ```
@@ -1191,27 +1535,37 @@ class ConflictDetection
 namespace App\Libraries;
 
 use App\Models\BookingModel;
+use App\Models\BookingResourceModel;
 use CodeIgniter\I18n\Time;
 
 class BookingService
 {
     protected BookingModel $bookingModel;
+    protected BookingResourceModel $bookingResourceModel;
     protected ConflictDetection $conflictDetection;
 
     public function __construct()
     {
         $this->bookingModel = new BookingModel();
+        $this->bookingResourceModel = new BookingResourceModel();
         $this->conflictDetection = new ConflictDetection();
     }
 
     /**
      * Create a new booking with conflict checking
+     * @param array $data Booking data including 'resource_ids' array
      */
     public function createBooking(array $data): array
     {
-        // Check for conflicts
+        $resourceIds = $data['resource_ids'] ?? [];
+
+        if (empty($resourceIds)) {
+            throw new \InvalidArgumentException('At least one resource is required');
+        }
+
+        // Check for conflicts across all resources
         if ($this->conflictDetection->hasConflicts(
-            $data['resource_id'],
+            $resourceIds,
             $data['start_time'],
             $data['end_time']
         )) {
@@ -1221,11 +1575,17 @@ class BookingService
         $db = \Config\Database::connect();
         $db->transStart();
 
+        // Remove resource_ids from booking data (not a column in bookings table)
+        unset($data['resource_ids']);
+
         $bookingId = $this->bookingModel->insert($data);
+
+        // Attach resources to booking via junction table
+        $this->bookingResourceModel->attachMany($bookingId, $resourceIds);
 
         // Handle recurring bookings
         if (!empty($data['recurrence_rule'])) {
-            $this->createRecurringInstances($bookingId, $data);
+            $this->createRecurringInstances($bookingId, $data, $resourceIds);
         }
 
         $db->transComplete();
@@ -1234,20 +1594,22 @@ class BookingService
             throw new \RuntimeException('Failed to create booking');
         }
 
-        return $this->bookingModel->find($bookingId);
+        $booking = $this->bookingModel->find($bookingId);
+        $booking['resources'] = $this->bookingModel->getResources($bookingId);
+
+        return $booking;
     }
 
     /**
      * Create recurring booking instances
      */
-    private function createRecurringInstances(int $parentId, array $data): void
+    private function createRecurringInstances(int $parentId, array $data, array $resourceIds): void
     {
         $rule = $data['recurrence_rule'];
         $start = Time::parse($data['start_time']);
         $end = Time::parse($data['end_time']);
         $duration = $start->difference($end)->getMinutes();
 
-        $instances = [];
         $limit = Time::now()->addMonths(3);
 
         while ($start->isBefore($limit)) {
@@ -1261,35 +1623,38 @@ class BookingService
             if ($start->isBefore($limit)) {
                 $instanceEnd = $start->addMinutes($duration);
 
-                $instances[] = [
-                    'company_id'         => $data['company_id'],
-                    'resource_id'        => $data['resource_id'],
-                    'created_by'         => $data['created_by'],
-                    'title'              => $data['title'],
-                    'start_time'         => $start->toDateTimeString(),
-                    'end_time'           => $instanceEnd->toDateTimeString(),
-                    'notes'              => $data['notes'] ?? null,
+                $instanceData = [
+                    'company_id'        => $data['company_id'],
+                    'created_by'        => $data['created_by'],
+                    'title'             => $data['title'],
+                    'start_time'        => $start->toDateTimeString(),
+                    'end_time'          => $instanceEnd->toDateTimeString(),
+                    'notes'             => $data['notes'] ?? null,
                     'parent_booking_id' => $parentId,
-                    'created_at'         => Time::now()->toDateTimeString(),
-                    'updated_at'         => Time::now()->toDateTimeString(),
                 ];
-            }
-        }
 
-        if (!empty($instances)) {
-            $this->bookingModel->insertBatch($instances);
+                $instanceId = $this->bookingModel->insert($instanceData);
+
+                // Attach same resources to recurring instance
+                $this->bookingResourceModel->attachMany($instanceId, $resourceIds);
+            }
         }
     }
 
     /**
      * Update a booking
+     * @param array $data Booking data, may include 'resource_ids' array
      */
     public function updateBooking(int $id, array $data): array
     {
-        // Check for conflicts (exclude self)
+        $resourceIds = $data['resource_ids'] ?? null;
+
+        // Check for conflicts if time or resources changed
         if (isset($data['start_time']) && isset($data['end_time'])) {
+            $checkResourceIds = $resourceIds ?? $this->bookingResourceModel->getResourceIds($id);
+
             if ($this->conflictDetection->hasConflicts(
-                $data['resource_id'],
+                $checkResourceIds,
                 $data['start_time'],
                 $data['end_time'],
                 $id
@@ -1298,8 +1663,37 @@ class BookingService
             }
         }
 
+        // Remove resource_ids from booking data
+        unset($data['resource_ids']);
+
         $this->bookingModel->update($id, $data);
-        return $this->bookingModel->find($id);
+
+        // Update resources if provided
+        if ($resourceIds !== null) {
+            $this->bookingResourceModel->sync($id, $resourceIds);
+        }
+
+        $booking = $this->bookingModel->find($id);
+        $booking['resources'] = $this->bookingModel->getResources($id);
+
+        return $booking;
+    }
+
+    /**
+     * Get detailed conflict information for resources
+     */
+    public function getConflictDetails(
+        array $resourceIds,
+        string $startTime,
+        string $endTime,
+        ?int $excludeBookingId = null
+    ): array {
+        return $this->conflictDetection->findConflicts(
+            $resourceIds,
+            $startTime,
+            $endTime,
+            $excludeBookingId
+        );
     }
 }
 ```
@@ -1350,7 +1744,8 @@ class Validation extends BaseConfig
 
     // Booking validation rules
     public array $booking = [
-        'resource_id' => 'required|integer',
+        'resource_ids' => 'required',
+        'resource_ids.*' => 'integer',
         'title' => 'required|max_length[255]',
         'start_time' => 'required|valid_date',
         'end_time' => 'required|valid_date',
@@ -1358,8 +1753,10 @@ class Validation extends BaseConfig
     ];
 
     public array $booking_errors = [
-        'resource_id' => [
-            'required' => 'Resource is required.',
+        'resource_ids' => [
+            'required' => 'At least one resource is required.',
+        ],
+        'resource_ids.*' => [
             'integer' => 'Invalid resource ID.',
         ],
         'title' => [
@@ -1695,6 +2092,7 @@ use CodeIgniter\Test\DatabaseTestTrait;
 use App\Models\UserModel;
 use App\Models\ResourceModel;
 use App\Models\BookingModel;
+use App\Models\BookingResourceModel;
 
 class BookingConflictTest extends CIUnitTestCase
 {
@@ -1709,6 +2107,7 @@ class BookingConflictTest extends CIUnitTestCase
         $userModel = new UserModel();
         $resourceModel = new ResourceModel();
         $bookingModel = new BookingModel();
+        $bookingResourceModel = new BookingResourceModel();
 
         $companyId = 1; // Assuming seeded company
 
@@ -1727,14 +2126,16 @@ class BookingConflictTest extends CIUnitTestCase
         ]);
 
         // Create first booking
-        $bookingModel->insert([
+        $bookingId = $bookingModel->insert([
             'company_id' => $companyId,
-            'resource_id' => $resourceId,
             'created_by' => $userId,
             'title' => 'Existing Booking',
             'start_time' => '2026-01-25 10:00:00',
             'end_time' => '2026-01-25 12:00:00',
         ]);
+
+        // Attach resource to booking via junction table
+        $bookingResourceModel->attachMany($bookingId, [$resourceId]);
 
         // Generate JWT token for auth
         $token = $this->generateTestToken($userId, $companyId, 'admin');
@@ -1743,7 +2144,7 @@ class BookingConflictTest extends CIUnitTestCase
         $result = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->post('/api/bookings', [
-            'resource_id' => $resourceId,
+            'resource_ids' => [$resourceId],
             'title' => 'Overlapping Booking',
             'start_time' => '2026-01-25 11:00:00',
             'end_time' => '2026-01-25 13:00:00',
