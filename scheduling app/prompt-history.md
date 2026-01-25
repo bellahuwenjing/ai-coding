@@ -182,3 +182,91 @@ Key structural changes:
 Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
+
+### Prompt 14
+
+**User (exact words):**
+> the current design mix people, vehicle and equipment all together under the umbrella term resource in both frontend and backend. That will create problems later as they have different data fields to store and different attributes to display. separate resournces into 3 different entities.
+
+**Paraphrase:** The current architecture uses a single `resources` entity for people, vehicles, and equipment, but this will cause issues since each type has different data fields and display attributes. Separate them into three distinct entities.
+
+**Response:** Updated all three documentation files to implement the separation:
+
+**Backend PRD (`docs/prd/PRD-backend.md`) - Version 3.0:**
+- Replaced `resources` table with `people`, `vehicles`, `equipment` tables
+- Replaced `booking_resources` junction table with `booking_people`, `booking_vehicles`, `booking_equipment`
+- Added separate API endpoints: `/api/people`, `/api/vehicles`, `/api/equipment`
+- Updated booking API to use `person_ids`, `vehicle_ids`, `equipment_ids` arrays
+- Created PersonModel, VehicleModel, EquipmentModel with type-specific fields
+- Created BookingPersonModel, BookingVehicleModel, BookingEquipmentModel junction models
+- Updated ConflictDetection to check all three entity types
+- Updated BookingService to handle all three entity types
+- Created PersonController, VehicleController, EquipmentController
+
+**Frontend PRD (`docs/prd/PRD-frontend.md`) - Version 2.0:**
+- Created Person, Vehicle, Equipment Backbone models
+- Created People, Vehicles, EquipmentCollection collections
+- Updated Booking model to use `person_ids`, `vehicle_ids`, `equipment_ids`
+- Updated ResourceAssignmentPanel props for separate entity collections
+
+**Frontend Visual Structure (`docs/frontend-visual-structure.md`) - Version 2.0:**
+- Changed Resources page to tabbed layout (People | Vehicles | Equipment)
+- Each tab has type-specific search, filters, and Add button
+- Updated component hierarchy to show separate list components per entity type
+
+---
+
+### Prompt 15
+
+**User (exact words):**
+> please also update prompt-history.md with my exact prompts along with your paraphrase
+
+**Response:** Updated prompt-history.md but initially used the plan text instead of user's original words.
+
+---
+
+### Prompt 16
+
+**User (exact words):**
+> my exact words were not included, the newly added prompt was your paraphrase only. is it very hard to find what i said to you previously?
+
+**Response:** Corrected the entry. Explained that I only had access to the current session where user said "Implement the following plan:" - the original words were in a previous plan mode session.
+
+---
+
+### Prompt 17
+
+**User (exact words):**
+> My exact words were:
+> the current design mix people, vehicle and equipment all together under the umbrella term resource in both frontend and backend. That will create problems later as they have different data fields to store and different attributes to display. separate resournces into 3 different entities.
+> why did you have trouble finding this?
+
+**Response:** Apologized and explained: The original prompt was in a previous session (plan mode). This session only contained "Implement the following plan:" with pre-generated plan text. Should have read the transcript file referenced at the bottom of the plan.
+
+---
+
+### Prompt 18
+
+**User (exact words):**
+> i see. so each time i switch the mode, it starts a new session which makes you lose prior context? is there a way to fix this?
+
+**Response:** Yes, switching modes (like exiting plan mode) starts a new session and loses prior conversational context.
+
+**Solutions to maintain context:**
+1. Read the transcript file referenced in plans at the start of implementation
+2. Update prompt-history.md during planning (before exiting plan mode)
+3. Include "Original Request" section in plan documents
+4. User can remind Claude to read transcript or state original request
+
+---
+
+### Prompt 19
+
+**User (exact words):**
+> yes please. also include our questions and answers on this topic in prompt-history so that i can refer back to this conversation later.
+
+**Response:** Added this conversation to prompt-history.md. Adopted new standard practices:
+- Update prompt-history.md before exiting plan mode with user's exact words
+- Read referenced transcript files when implementing plans from previous sessions
+
+---

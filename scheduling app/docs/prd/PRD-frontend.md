@@ -9,7 +9,7 @@
 A scheduling application for managing people, vehicles, and equipment built with React for UI and Backbone.js for data management and routing.
 
 ### 1.2 Target Users
-- **Admin Users:** Full access to create, edit, delete resources and bookings
+- **Admin Users:** Full access to create, edit, delete people, vehicles, equipment, and bookings
 - **Member Users:** View-only access to bookings, can update own availability
 
 ---
@@ -67,12 +67,16 @@ schpro-frontend/
 │   │       ├── Select.jsx
 │   │       └── Alert.jsx
 │   ├── models/              # Backbone models
-│   │   ├── Resource.js
+│   │   ├── Person.js
+│   │   ├── Vehicle.js
+│   │   ├── Equipment.js
 │   │   ├── Booking.js
 │   │   ├── User.js
 │   │   └── Company.js
 │   ├── collections/         # Backbone collections
-│   │   ├── Resources.js
+│   │   ├── People.js
+│   │   ├── Vehicles.js
+│   │   ├── Equipment.js
 │   │   ├── Bookings.js
 │   │   └── Users.js
 │   ├── hooks/               # React-Backbone integration
@@ -195,21 +199,25 @@ interface CalendarViewProps {
 ### 4.4 Resource Management (Admin Only)
 
 **Requirements:**
-- List view with search and filters
-- CRUD operations for resources
-- Resource types: Person, Vehicle, Equipment
+- Tabbed view with People, Vehicles, Equipment tabs
+- List view with search and filters for each entity type
+- CRUD operations for each entity type
+- Type-specific fields and validation
 - Availability settings (working hours, days off)
-- Skills/certifications (for people type)
 - Active/inactive toggle
 
-**Resource Model:**
+**Person Model:**
 ```javascript
-const Resource = Backbone.Model.extend({
-    urlRoot: '/api/resources',
+const Person = Backbone.Model.extend({
+    urlRoot: '/api/people',
     defaults: {
         id: null,
         name: '',
-        type: 'person', // 'person' | 'vehicle' | 'equipment'
+        email: '',
+        phone: '',
+        skills: [],
+        certifications: [],
+        hourly_rate: null,
         is_active: true,
         availability: {
             monday: { start: '09:00', end: '17:00' },
@@ -219,33 +227,103 @@ const Resource = Backbone.Model.extend({
             friday: { start: '09:00', end: '17:00' },
             saturday: null,
             sunday: null
-        },
-        metadata: {
-            // For person: skills, certifications, phone, email
-            // For vehicle: make, model, license_plate, capacity
-            // For equipment: serial_number, condition
         }
     },
     validate(attrs) {
         if (!attrs.name || attrs.name.trim() === '') {
             return 'Name is required';
         }
-        if (!['person', 'vehicle', 'equipment'].includes(attrs.type)) {
-            return 'Invalid resource type';
+    }
+});
+```
+
+**Vehicle Model:**
+```javascript
+const Vehicle = Backbone.Model.extend({
+    urlRoot: '/api/vehicles',
+    defaults: {
+        id: null,
+        name: '',
+        make: '',
+        model: '',
+        year: null,
+        license_plate: '',
+        vin: '',
+        capacity: '',
+        is_active: true,
+        availability: {
+            monday: { start: '06:00', end: '20:00' },
+            tuesday: { start: '06:00', end: '20:00' },
+            wednesday: { start: '06:00', end: '20:00' },
+            thursday: { start: '06:00', end: '20:00' },
+            friday: { start: '06:00', end: '20:00' },
+            saturday: null,
+            sunday: null
+        }
+    },
+    validate(attrs) {
+        if (!attrs.name || attrs.name.trim() === '') {
+            return 'Name is required';
         }
     }
 });
 ```
 
-**Resources Collection:**
+**Equipment Model:**
 ```javascript
-const Resources = Backbone.Collection.extend({
-    model: Resource,
-    url: '/api/resources',
-
-    byType(type) {
-        return this.where({ type });
+const Equipment = Backbone.Model.extend({
+    urlRoot: '/api/equipment',
+    defaults: {
+        id: null,
+        name: '',
+        serial_number: '',
+        manufacturer: '',
+        model: '',
+        condition: 'good', // 'excellent' | 'good' | 'fair' | 'poor'
+        last_maintenance: null,
+        next_maintenance: null,
+        is_active: true,
+        availability: {
+            monday: { start: '06:00', end: '20:00' },
+            tuesday: { start: '06:00', end: '20:00' },
+            wednesday: { start: '06:00', end: '20:00' },
+            thursday: { start: '06:00', end: '20:00' },
+            friday: { start: '06:00', end: '20:00' },
+            saturday: null,
+            sunday: null
+        }
     },
+    validate(attrs) {
+        if (!attrs.name || attrs.name.trim() === '') {
+            return 'Name is required';
+        }
+    }
+});
+```
+
+**Collections:**
+```javascript
+const People = Backbone.Collection.extend({
+    model: Person,
+    url: '/api/people',
+
+    active() {
+        return this.where({ is_active: true });
+    }
+});
+
+const Vehicles = Backbone.Collection.extend({
+    model: Vehicle,
+    url: '/api/vehicles',
+
+    active() {
+        return this.where({ is_active: true });
+    }
+});
+
+const EquipmentCollection = Backbone.Collection.extend({
+    model: Equipment,
+    url: '/api/equipment',
 
     active() {
         return this.where({ is_active: true });
@@ -259,10 +337,10 @@ const Resources = Backbone.Collection.extend({
 
 **Requirements:**
 - Create/edit/delete bookings (Admin only)
-- Assign resource to time slot
-- Required fields: resource, start time, end time, title
-- Optional: notes, recurrence rule
-- Conflict detection with warning before save
+- Assign people, vehicles, and equipment to time slot
+- Required fields: at least one entity, start time, end time, title
+- Optional: location, notes, recurrence rule
+- Conflict detection with warning before save (checks all entity types)
 - Recurring bookings (daily, weekly, monthly)
 
 **Booking Model:**
@@ -271,23 +349,42 @@ const Booking = Backbone.Model.extend({
     urlRoot: '/api/bookings',
     defaults: {
         id: null,
-        resource_ids: [],      // Array of assigned resource IDs
+        person_ids: [],        // Array of assigned person IDs
+        vehicle_ids: [],       // Array of assigned vehicle IDs
+        equipment_ids: [],     // Array of assigned equipment IDs
         title: '',
         location: '',          // Booking location
         start_time: null,
         end_time: null,
         notes: '',
-        recurrence_rule: null  // null | 'daily' | 'weekly' | 'monthly'
+        recurrence_rule: null, // null | 'daily' | 'weekly' | 'monthly'
+        // Populated by server on fetch
+        people: [],
+        vehicles: [],
+        equipment: []
     },
     validate(attrs) {
-        if (!attrs.resource_ids || attrs.resource_ids.length === 0) {
-            return 'At least one resource is required';
+        const hasEntities = (attrs.person_ids?.length > 0) ||
+                           (attrs.vehicle_ids?.length > 0) ||
+                           (attrs.equipment_ids?.length > 0);
+        if (!hasEntities) {
+            return 'At least one person, vehicle, or equipment is required';
         }
         if (!attrs.start_time || !attrs.end_time) {
             return 'Start and end time are required';
         }
         if (new Date(attrs.start_time) >= new Date(attrs.end_time)) {
             return 'End time must be after start time';
+        }
+    },
+
+    // Helper to get all assigned entity IDs by type
+    getEntityIds(type) {
+        switch(type) {
+            case 'person': return this.get('person_ids') || [];
+            case 'vehicle': return this.get('vehicle_ids') || [];
+            case 'equipment': return this.get('equipment_ids') || [];
+            default: return [];
         }
     }
 });
@@ -299,10 +396,24 @@ const Bookings = Backbone.Collection.extend({
     model: Booking,
     url: '/api/bookings',
 
-    forResource(resourceId) {
+    forPerson(personId) {
         return this.filter(booking => {
-            const resourceIds = booking.get('resource_ids');
-            return resourceIds.includes(resourceId);
+            const personIds = booking.get('person_ids') || [];
+            return personIds.includes(personId);
+        });
+    },
+
+    forVehicle(vehicleId) {
+        return this.filter(booking => {
+            const vehicleIds = booking.get('vehicle_ids') || [];
+            return vehicleIds.includes(vehicleId);
+        });
+    },
+
+    forEquipment(equipmentId) {
+        return this.filter(booking => {
+            const equipmentIds = booking.get('equipment_ids') || [];
+            return equipmentIds.includes(equipmentId);
         });
     },
 
@@ -314,16 +425,22 @@ const Bookings = Backbone.Collection.extend({
         });
     },
 
-    findConflicts(resourceIds, start, end, excludeId = null) {
+    findConflicts(personIds, vehicleIds, equipmentIds, start, end, excludeId = null) {
         return this.filter(booking => {
             if (booking.id === excludeId) return false;
 
-            // Check if any resource overlaps
-            const bookingResourceIds = booking.get('resource_ids');
-            const hasOverlappingResource = resourceIds.some(id =>
-                bookingResourceIds.includes(id)
-            );
-            if (!hasOverlappingResource) return false;
+            // Check if any entity overlaps
+            const bookingPersonIds = booking.get('person_ids') || [];
+            const bookingVehicleIds = booking.get('vehicle_ids') || [];
+            const bookingEquipmentIds = booking.get('equipment_ids') || [];
+
+            const hasOverlappingPerson = personIds.some(id => bookingPersonIds.includes(id));
+            const hasOverlappingVehicle = vehicleIds.some(id => bookingVehicleIds.includes(id));
+            const hasOverlappingEquipment = equipmentIds.some(id => bookingEquipmentIds.includes(id));
+
+            if (!hasOverlappingPerson && !hasOverlappingVehicle && !hasOverlappingEquipment) {
+                return false;
+            }
 
             // Check time overlap
             const bookingStart = new Date(booking.get('start_time'));
@@ -336,18 +453,18 @@ const Bookings = Backbone.Collection.extend({
 
 **ResourceAssignmentPanel Component:**
 
-A transfer-list style UI for assigning multiple resources to a booking.
+A transfer-list style UI for assigning people, vehicles, and equipment to a booking.
 
 ```
 ┌───────────────────────────┐     ┌───────────────────────────┐
-│ Available Resources       │     │ Booking                   │
+│ Available                 │     │ Booking                   │
 ├───────────────────────────┤     ├───────────────────────────┤
 │ [People][Vehicles][Equip] │     │ 📍 123 Main Street        │
 ├───────────────────────────┤     │ 📅 Jan 25, 2026           │
 │ 🔍 Search people...       │     │ 🕐 9:00 AM - 12:00 PM     │
 ├───────────────────────────┤     │                           │
 │ ☐ Jane Doe                │     ├───────────────────────────┤
-│ ☐ Bob Wilson              │ ──▶ │ Assigned Resources:       │
+│ ☐ Bob Wilson              │ ──▶ │ Assigned:                 │
 │ ☐ Sarah Chen              │     │ ┌───────────────────────┐ │
 │ ☐ Mike Johnson            │ ◀── │ │ 👤 John Smith      ✕ │ │
 │                           │     │ │ 🚗 Ford F-150 #2   ✕ │ │
@@ -365,40 +482,50 @@ interface ResourceAssignmentPanelProps {
         end_time: Date;
     };
 
-    // Resources
-    availableResources: Backbone.Collection;
-    selectedResourceIds: number[];
+    // Separate collections for each entity type
+    peopleCollection: Backbone.Collection;
+    vehiclesCollection: Backbone.Collection;
+    equipmentCollection: Backbone.Collection;
 
-    // Callbacks
-    onResourceAdd: (resourceId: number) => void;
-    onResourceRemove: (resourceId: number) => void;
+    // Selected IDs for each type
+    selectedPersonIds: number[];
+    selectedVehicleIds: number[];
+    selectedEquipmentIds: number[];
+
+    // Callbacks for each type
+    onPersonAdd: (personId: number) => void;
+    onPersonRemove: (personId: number) => void;
+    onVehicleAdd: (vehicleId: number) => void;
+    onVehicleRemove: (vehicleId: number) => void;
+    onEquipmentAdd: (equipmentId: number) => void;
+    onEquipmentRemove: (equipmentId: number) => void;
 }
 ```
 
-**Left Panel - Resource Selection:**
-- **Tabs:** People | Vehicles | Equipment (filter available resources by type)
+**Left Panel - Entity Selection:**
+- **Tabs:** People | Vehicles | Equipment (each tab loads its own collection)
 - **Search:** Filter within the active tab
-- **List:** Clickable resource items to add to booking
-- **State:** Already-assigned resources shown with checkmark or hidden from list
+- **List:** Clickable items to add to booking
+- **State:** Already-assigned items shown with checkmark or hidden from list
 
 **Right Panel - Booking Context:**
 - **Header:** Booking location/title
 - **Details:** Date and time range
-- **Assigned Resources:** Chips/tags with type icon and remove (✕) button
-- Shows resources from all types together
+- **Assigned Entities:** Chips/tags with type icon and remove (✕) button
+- Shows people, vehicles, and equipment together
 
 **Interactions:**
-1. Click resource in left panel → adds to booking (right panel)
+1. Click entity in left panel → adds to booking (right panel)
 2. Click ✕ on chip → removes from booking
-3. Switch tabs → shows different resource type
-4. Search → filters current tab's resources
+3. Switch tabs → shows different entity type from its collection
+4. Search → filters current tab's entities
 
 **BookingForm Integration:**
 
-The BookingForm component uses ResourceAssignmentPanel instead of a single resource dropdown:
+The BookingForm component uses ResourceAssignmentPanel with separate entity collections:
 
 ```javascript
-// BookingForm.jsx - resource selection section
+// BookingForm.jsx - entity selection section
 <ResourceAssignmentPanel
     booking={{
         title: formData.title,
@@ -406,15 +533,35 @@ The BookingForm component uses ResourceAssignmentPanel instead of a single resou
         start_time: formData.start_time,
         end_time: formData.end_time
     }}
-    availableResources={resourcesCollection}
-    selectedResourceIds={formData.resource_ids}
-    onResourceAdd={(id) => setFormData({
+    peopleCollection={peopleCollection}
+    vehiclesCollection={vehiclesCollection}
+    equipmentCollection={equipmentCollection}
+    selectedPersonIds={formData.person_ids}
+    selectedVehicleIds={formData.vehicle_ids}
+    selectedEquipmentIds={formData.equipment_ids}
+    onPersonAdd={(id) => setFormData({
         ...formData,
-        resource_ids: [...formData.resource_ids, id]
+        person_ids: [...formData.person_ids, id]
     })}
-    onResourceRemove={(id) => setFormData({
+    onPersonRemove={(id) => setFormData({
         ...formData,
-        resource_ids: formData.resource_ids.filter(rid => rid !== id)
+        person_ids: formData.person_ids.filter(pid => pid !== id)
+    })}
+    onVehicleAdd={(id) => setFormData({
+        ...formData,
+        vehicle_ids: [...formData.vehicle_ids, id]
+    })}
+    onVehicleRemove={(id) => setFormData({
+        ...formData,
+        vehicle_ids: formData.vehicle_ids.filter(vid => vid !== id)
+    })}
+    onEquipmentAdd={(id) => setFormData({
+        ...formData,
+        equipment_ids: [...formData.equipment_ids, id]
+    })}
+    onEquipmentRemove={(id) => setFormData({
+        ...formData,
+        equipment_ids: formData.equipment_ids.filter(eid => eid !== id)
     })}
 />
 ```
@@ -768,5 +915,6 @@ npm run preview
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 2.0*
 *Last Updated: January 2026*
+*Change: Separated resources into People, Vehicles, and Equipment entities*
