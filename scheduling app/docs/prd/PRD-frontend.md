@@ -9,8 +9,8 @@
 A scheduling application for managing people, vehicles, and equipment built with React for UI and Backbone.js for data management and routing.
 
 ### 1.2 Target Users
-- **Admin Users:** Full access to create, edit, delete resources and schedules
-- **Member Users:** View-only access to schedules, can update own availability
+- **Admin Users:** Full access to create, edit, delete resources and bookings
+- **Member Users:** View-only access to bookings, can update own availability
 
 ---
 
@@ -38,14 +38,21 @@ schpro-frontend/
 │   │   │   ├── DayView.jsx
 │   │   │   ├── WeekView.jsx
 │   │   │   ├── MonthView.jsx
-│   │   │   └── ScheduleBlock.jsx
+│   │   │   └── BookingBlock.jsx
 │   │   ├── ResourceList/
 │   │   │   ├── ResourceList.jsx
 │   │   │   ├── ResourceItem.jsx
 │   │   │   └── ResourceFilters.jsx
-│   │   ├── ScheduleForm/
-│   │   │   ├── ScheduleForm.jsx
+│   │   ├── BookingForm/
+│   │   │   ├── BookingForm.jsx
 │   │   │   └── RecurrenceSelector.jsx
+│   │   ├── ResourceAssignment/
+│   │   │   ├── ResourceAssignmentPanel.jsx
+│   │   │   ├── ResourceTabs.jsx
+│   │   │   ├── ResourceList.jsx
+│   │   │   ├── ResourceListItem.jsx
+│   │   │   ├── BookingContextCard.jsx
+│   │   │   └── AssignedResourceChip.jsx
 │   │   ├── Dashboard/
 │   │   │   ├── Dashboard.jsx
 │   │   │   ├── StatsCard.jsx
@@ -61,12 +68,12 @@ schpro-frontend/
 │   │       └── Alert.jsx
 │   ├── models/              # Backbone models
 │   │   ├── Resource.js
-│   │   ├── Schedule.js
+│   │   ├── Booking.js
 │   │   ├── User.js
 │   │   └── Company.js
 │   ├── collections/         # Backbone collections
 │   │   ├── Resources.js
-│   │   ├── Schedules.js
+│   │   ├── Bookings.js
 │   │   └── Users.js
 │   ├── hooks/               # React-Backbone integration
 │   │   ├── useBackboneModel.js
@@ -134,19 +141,19 @@ const User = Backbone.Model.extend({
 ### 4.2 Dashboard
 
 **Requirements:**
-- Overview of today's schedules
+- Overview of today's bookings
 - Quick stats cards:
   - Total resources
   - Scheduled today
   - Utilization rate
   - Conflicts detected
-- Recent activity feed (last 10 schedule changes)
-- Quick actions: "Add Resource", "Create Schedule"
+- Recent activity feed (last 10 booking changes)
+- Quick actions: "Add Resource", "Create Booking"
 
 **UI Components:**
 - `StatsCard` - Display single metric with icon
-- `RecentActivity` - List of recent schedule events
-- `TodaySchedule` - Summary list of today's assignments
+- `RecentActivity` - List of recent booking events
+- `TodayBookings` - Summary list of today's assignments
 
 ---
 
@@ -155,9 +162,9 @@ const User = Backbone.Model.extend({
 **Requirements:**
 - Day / Week / Month view toggle
 - Filter by resource type (people, vehicles, equipment)
-- Color-coded schedule blocks by resource or job type
+- Color-coded booking blocks by resource or job type
 - Drag-and-drop to reschedule (Admin only)
-- Click to view/edit schedule details
+- Click to view/edit booking details
 - Visual indicator for conflicts
 
 **Calendar Component Props:**
@@ -165,14 +172,14 @@ const User = Backbone.Model.extend({
 interface CalendarViewProps {
     view: 'day' | 'week' | 'month';
     date: Date;
-    schedules: Backbone.Collection;
+    bookings: Backbone.Collection;
     resources: Backbone.Collection;
     filters: {
         resourceTypes: string[];
         resourceIds: number[];
     };
-    onScheduleClick: (schedule: Schedule) => void;
-    onScheduleDrop: (scheduleId: number, newStart: Date, newEnd: Date) => void;
+    onBookingClick: (booking: Booking) => void;
+    onBookingDrop: (bookingId: number, newStart: Date, newEnd: Date) => void;
     onDateChange: (date: Date) => void;
 }
 ```
@@ -248,32 +255,33 @@ const Resources = Backbone.Collection.extend({
 
 ---
 
-### 4.5 Schedule Management
+### 4.5 Booking Management
 
 **Requirements:**
-- Create/edit/delete schedules (Admin only)
+- Create/edit/delete bookings (Admin only)
 - Assign resource to time slot
 - Required fields: resource, start time, end time, title
 - Optional: notes, recurrence rule
 - Conflict detection with warning before save
-- Recurring schedules (daily, weekly, monthly)
+- Recurring bookings (daily, weekly, monthly)
 
-**Schedule Model:**
+**Booking Model:**
 ```javascript
-const Schedule = Backbone.Model.extend({
-    urlRoot: '/api/schedules',
+const Booking = Backbone.Model.extend({
+    urlRoot: '/api/bookings',
     defaults: {
         id: null,
-        resource_id: null,
+        resource_ids: [],      // Array of assigned resource IDs
         title: '',
+        location: '',          // Booking location
         start_time: null,
         end_time: null,
         notes: '',
-        recurrence_rule: null // null | 'daily' | 'weekly' | 'monthly'
+        recurrence_rule: null  // null | 'daily' | 'weekly' | 'monthly'
     },
     validate(attrs) {
-        if (!attrs.resource_id) {
-            return 'Resource is required';
+        if (!attrs.resource_ids || attrs.resource_ids.length === 0) {
+            return 'At least one resource is required';
         }
         if (!attrs.start_time || !attrs.end_time) {
             return 'Start and end time are required';
@@ -285,38 +293,130 @@ const Schedule = Backbone.Model.extend({
 });
 ```
 
-**Schedules Collection:**
+**Bookings Collection:**
 ```javascript
-const Schedules = Backbone.Collection.extend({
-    model: Schedule,
-    url: '/api/schedules',
+const Bookings = Backbone.Collection.extend({
+    model: Booking,
+    url: '/api/bookings',
 
     forResource(resourceId) {
-        return this.where({ resource_id: resourceId });
+        return this.filter(booking => {
+            const resourceIds = booking.get('resource_ids');
+            return resourceIds.includes(resourceId);
+        });
     },
 
     inDateRange(start, end) {
-        return this.filter(schedule => {
-            const schedStart = new Date(schedule.get('start_time'));
-            const schedEnd = new Date(schedule.get('end_time'));
-            return schedStart < end && schedEnd > start;
+        return this.filter(booking => {
+            const bookingStart = new Date(booking.get('start_time'));
+            const bookingEnd = new Date(booking.get('end_time'));
+            return bookingStart < end && bookingEnd > start;
         });
     },
 
-    findConflicts(resourceId, start, end, excludeId = null) {
-        return this.filter(schedule => {
-            if (schedule.id === excludeId) return false;
-            if (schedule.get('resource_id') !== resourceId) return false;
+    findConflicts(resourceIds, start, end, excludeId = null) {
+        return this.filter(booking => {
+            if (booking.id === excludeId) return false;
 
-            const schedStart = new Date(schedule.get('start_time'));
-            const schedEnd = new Date(schedule.get('end_time'));
-            const newStart = new Date(start);
-            const newEnd = new Date(end);
+            // Check if any resource overlaps
+            const bookingResourceIds = booking.get('resource_ids');
+            const hasOverlappingResource = resourceIds.some(id =>
+                bookingResourceIds.includes(id)
+            );
+            if (!hasOverlappingResource) return false;
 
-            return schedStart < newEnd && schedEnd > newStart;
+            // Check time overlap
+            const bookingStart = new Date(booking.get('start_time'));
+            const bookingEnd = new Date(booking.get('end_time'));
+            return bookingStart < new Date(end) && bookingEnd > new Date(start);
         });
     }
 });
+```
+
+**ResourceAssignmentPanel Component:**
+
+A transfer-list style UI for assigning multiple resources to a booking.
+
+```
+┌───────────────────────────┐     ┌───────────────────────────┐
+│ Available Resources       │     │ Booking                   │
+├───────────────────────────┤     ├───────────────────────────┤
+│ [People][Vehicles][Equip] │     │ 📍 123 Main Street        │
+├───────────────────────────┤     │ 📅 Jan 25, 2026           │
+│ 🔍 Search people...       │     │ 🕐 9:00 AM - 12:00 PM     │
+├───────────────────────────┤     │                           │
+│ ☐ Jane Doe                │     ├───────────────────────────┤
+│ ☐ Bob Wilson              │ ──▶ │ Assigned Resources:       │
+│ ☐ Sarah Chen              │     │ ┌───────────────────────┐ │
+│ ☐ Mike Johnson            │ ◀── │ │ 👤 John Smith      ✕ │ │
+│                           │     │ │ 🚗 Ford F-150 #2   ✕ │ │
+│                           │     │ │ 🔧 Excavator #1    ✕ │ │
+└───────────────────────────┘     └───────────────────────────┘
+```
+
+```typescript
+interface ResourceAssignmentPanelProps {
+    // Booking context
+    booking: {
+        title: string;
+        location: string;
+        start_time: Date;
+        end_time: Date;
+    };
+
+    // Resources
+    availableResources: Backbone.Collection;
+    selectedResourceIds: number[];
+
+    // Callbacks
+    onResourceAdd: (resourceId: number) => void;
+    onResourceRemove: (resourceId: number) => void;
+}
+```
+
+**Left Panel - Resource Selection:**
+- **Tabs:** People | Vehicles | Equipment (filter available resources by type)
+- **Search:** Filter within the active tab
+- **List:** Clickable resource items to add to booking
+- **State:** Already-assigned resources shown with checkmark or hidden from list
+
+**Right Panel - Booking Context:**
+- **Header:** Booking location/title
+- **Details:** Date and time range
+- **Assigned Resources:** Chips/tags with type icon and remove (✕) button
+- Shows resources from all types together
+
+**Interactions:**
+1. Click resource in left panel → adds to booking (right panel)
+2. Click ✕ on chip → removes from booking
+3. Switch tabs → shows different resource type
+4. Search → filters current tab's resources
+
+**BookingForm Integration:**
+
+The BookingForm component uses ResourceAssignmentPanel instead of a single resource dropdown:
+
+```javascript
+// BookingForm.jsx - resource selection section
+<ResourceAssignmentPanel
+    booking={{
+        title: formData.title,
+        location: formData.location,
+        start_time: formData.start_time,
+        end_time: formData.end_time
+    }}
+    availableResources={resourcesCollection}
+    selectedResourceIds={formData.resource_ids}
+    onResourceAdd={(id) => setFormData({
+        ...formData,
+        resource_ids: [...formData.resource_ids, id]
+    })}
+    onResourceRemove={(id) => setFormData({
+        ...formData,
+        resource_ids: formData.resource_ids.filter(rid => rid !== id)
+    })}
+/>
 ```
 
 ---
@@ -324,11 +424,11 @@ const Schedules = Backbone.Collection.extend({
 ### 4.6 Member View
 
 **Requirements:**
-- View assigned schedules only (or all, based on settings)
-- Cannot create/edit/delete schedules
+- View assigned bookings only (or all, based on settings)
+- Cannot create/edit/delete bookings
 - Can update own availability (if linked to a resource)
 - Read-only calendar view
-- Filtered view of personal schedule
+- Filtered view of personal bookings
 
 ---
 
@@ -603,13 +703,13 @@ export function useRouter() {
 
 ### 8.2 Color Coding
 
-| Resource Type | Color |
-|---------------|-------|
-| Person | Blue (#3B82F6) |
-| Vehicle | Green (#10B981) |
-| Equipment | Orange (#F59E0B) |
+| Resource Type | Icon | Color |
+|---------------|------|-------|
+| Person | 👤 | Blue (#3B82F6) |
+| Vehicle | 🚗 | Green (#10B981) |
+| Equipment | 🔧 | Orange (#F59E0B) |
 
-| Schedule Status | Color |
+| Booking Status | Color |
 |----------------|-------|
 | Confirmed | Green |
 | Tentative | Yellow |
