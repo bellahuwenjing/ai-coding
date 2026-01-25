@@ -1,5 +1,5 @@
 import SectionTitle from "@/components/section-title";
-import { BotIcon, BrainIcon, ZapIcon } from "lucide-react";
+import { CalendarIcon, MousePointerClickIcon, AlertTriangleIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRef } from "react";
 
@@ -9,27 +9,27 @@ export default function Features() {
 
     const featuresData = [
         {
-            icon: BotIcon,
-            title: "Autonomous Agents",
-            description: "Agents that plan, execute & think step-by-step.",
+            icon: CalendarIcon,
+            title: "Unified Calendar",
+            description: "See all your people, vehicles, and equipment in one view.",
         },
         {
-            icon: BrainIcon,
-            title: "Memory & Learning",
-            description: "Agents retain memory and improve over time.",
+            icon: MousePointerClickIcon,
+            title: "Drag & Drop Scheduling",
+            description: "Assign resources to jobs with intuitive drag and drop.",
         },
         {
-            icon: ZapIcon,
-            title: "Real-time Execution",
-            description: "Fast responses with async task processing.",
+            icon: AlertTriangleIcon,
+            title: "Conflict Detection",
+            description: "Get instant alerts before double-booking any resource.",
         }
     ];
 
     return (
         <section className="mt-32">
             <SectionTitle
-                title="Agent features"
-                description="Design AI assistants that research, plan, and execute tasks — all powered by your prompts."
+                title="Scheduling features"
+                description="Everything you need to manage your team and assets efficiently."
             />
 
             <div className="flex flex-wrap items-center justify-center gap-6 mt-10 px-6">

@@ -7,53 +7,53 @@ export default function Testimonials() {
     const ref = useRef([]);
     const data = [
         {
-            review: 'Super clean and easy to use. These Tailwind + React components saved me hours of dev time and countless lines of extra code!',
-            name: 'Richard Nelson',
-            about: 'Founder & CEO',
+            review: 'SchedulePro eliminated our double-booking nightmare. We used to waste hours fixing scheduling conflicts — now it just works.',
+            name: 'Sarah Chen',
+            about: 'Operations Manager',
             rating: 5,
-            image: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=200',
+            image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face',
         },
         {
-            review: 'The design quality is top-notch. Perfect balance between simplicity and style. Highly recommend for any creative developer!',
-            name: 'Sophia Martinez',
-            about: 'Founder & CEO',
+            review: 'Finally, one place to see all our trucks and crew. The drag-and-drop interface is so intuitive my team learned it in minutes.',
+            name: 'Marcus Johnson',
+            about: 'Fleet Manager',
             rating: 5,
-            image: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
+            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
         },
         {
-            review: 'Absolutely love the reusability of these components. My workflow feels 10x faster now with cleaner and more consistent layouts.',
-            name: 'Ethan Roberts',
-            about: 'Founder & CEO',
+            review: 'We manage 200+ employees across 3 locations. SchedulePro handles it all without breaking a sweat.',
+            name: 'Emily Rodriguez',
+            about: 'HR Director',
             rating: 5,
-            image: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=200&auto=format&fit=crop&q=60',
+            image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop&crop=face',
         },
         {
-            review: 'Clean, elegant, and efficient. These components are a dream for any modern web developer who values beautiful code.',
-            name: 'Isabella Kim',
-            about: 'Founder & CEO',
+            review: 'The real-time sync is a game-changer. Our field teams always know exactly where they need to be.',
+            name: 'David Park',
+            about: 'Project Manager',
             rating: 5,
-            image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200&auto=format&fit=crop&q=60',
+            image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
         },
         {
-            review: "I've tried dozens of UI kits, but this one just feels right. Everything works seamlessly and looks incredibly polished.",
-            name: 'Liam Johnson',
-            about: 'Founder & CEO',
+            review: 'Cut our scheduling time by 70%. What used to take a full day now takes an hour.',
+            name: 'Lisa Thompson',
+            about: 'Owner, Thompson Construction',
             rating: 5,
-            image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&h=100&auto=format&fit=crop',
+            image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face',
         },
         {
-            review: 'Brilliantly structured components with clean, modern styling. Makes development a joy and design updates super quick.',
-            name: 'Ava Patel',
-            about: 'Founder & CEO',
+            review: 'Best investment we made this year. ROI was positive within the first month.',
+            name: 'James Wilson',
+            about: 'COO',
             rating: 5,
-            image: 'https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/userImage/userImage1.png',
+            image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop&crop=face',
         },
     ];
     return (
         <section className="mt-32 flex flex-col items-center">
             <SectionTitle
-                title="Here what aur trusted users about our best AI agents."
-                description="Empower your business with AI agents that optimize processes and accelerate performance."
+                title="Trusted by operations teams everywhere"
+                description="See why hundreds of companies switched to SchedulePro."
             />
             <div className='mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
                 {data.map((item, index) => (

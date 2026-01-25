@@ -7,34 +7,34 @@ export default function FaqSection() {
     const [isOpen, setIsOpen] = useState(false);
     const data = [
         {
-            question: 'Do I need coding or design experience to use PrebuiltUI?',
-            answer: "Basic coding knowledge (HTML/CSS, Tailwind) helps, but advanced design skills aren't required. You can use components as-is or customize them.",
+            question: 'How long does it take to set up SchedulePro?',
+            answer: 'Most teams are up and running in under 30 minutes. Simply add your resources, set their availability, and start scheduling.',
         },
         {
-            question: 'What is PrebuiltUI and how does it help developers and designers?',
-            answer: 'PrebuiltUI provides ready-to-use, customizable UI components and templates, saving time for developers and designers.',
+            question: 'Can I import my existing data?',
+            answer: 'Yes! You can import resources via CSV or connect directly to your HR system. We also offer free migration assistance for Pro and Enterprise plans.',
         },
         {
-            question: 'Can I use PrebuiltUI components in my existing project?',
-            answer: 'Yes, components can be integrated into HTML, React, Next.js, Vue, and other projects using Tailwind CSS.',
+            question: 'What types of resources can I schedule?',
+            answer: 'SchedulePro handles people (employees, contractors), vehicles (trucks, vans, equipment), and assets (tools, rooms, machinery) — all in one unified calendar.',
         },
         {
-            question: 'How customizable are the generated components?',
-            answer: 'Components are highly customizable with Tailwind utility classes, theming, and structural adjustments.',
+            question: 'Is my data secure?',
+            answer: 'Absolutely. We use bank-level encryption, regular backups, and are SOC 2 compliant. Your data is isolated per company and never shared.',
         },
         {
-            question: 'Does PrebuiltUI support team collaboration?',
-            answer: "There's no clear documentation on built-in collaboration features. Check their support for team options.",
+            question: 'Can my team access schedules on mobile?',
+            answer: 'Yes, SchedulePro works on any device. Your team can view their schedules, receive notifications, and update availability from their phones.',
         },
         {
-            question: 'Can I try PrebuiltUI before purchasing a plan?',
-            answer: 'Yes, you can try PrebuiltUI with full access to features.',
+            question: 'What happens if I exceed my plan limits?',
+            answer: "We'll notify you when you're approaching limits. You can upgrade anytime, and we prorate the difference. No surprises.",
         },
     ];
 
     return (
         <section className='mt-32'>
-            <SectionTitle title="FAQ's" description="Looking for answers to your frequently asked questions? Check out our FAQ's section below to find." />
+            <SectionTitle title="Frequently Asked Questions" description="Got questions? We've got answers." />
             <div className='mx-auto mt-12 space-y-4 w-full max-w-xl'>
                 {data.map((item, index) => (
                     <motion.div key={index} className='flex flex-col glass rounded-md'

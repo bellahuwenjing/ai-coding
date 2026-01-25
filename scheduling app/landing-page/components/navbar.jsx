@@ -13,11 +13,10 @@ export default function Navbar() {
     const pathname = usePathname();
 
     const links = [
-        { name: 'Home', href: '/' },
-        { name: 'Agents', href: '#agents' },
-        { name: 'Use Cases', href: '#use-cases' },
+        { name: 'Features', href: '#features' },
+        { name: 'How It Works', href: '#how-it-works' },
         { name: 'Pricing', href: '#pricing' },
-        { name: 'Docs', href: '#docs' }
+        { name: 'FAQ', href: '#faq' }
     ];
 
     useEffect(() => {
@@ -55,7 +54,7 @@ export default function Navbar() {
                         </Link>
                     ))}
                     <Link href='/' className='btn glass'>
-                        Sign Up
+                        Start Free Trial
                     </Link>
                 </div>
 
@@ -73,7 +72,7 @@ export default function Navbar() {
 
 
                 <Link href='/' className='btn glass' onClick={() => setIsOpen(false)}>
-                    Sign Up
+                    Start Free Trial
                 </Link>
 
                 <button onClick={() => setIsOpen(false)} className='rounded-md p-2 glass'>

@@ -8,48 +8,48 @@ export default function PricingPlans() {
     const data = [
         {
             icon: RocketIcon,
-            title: 'Starter',
-            description: 'For individuals and small teams',
-            price: '$19',
+            title: 'Free',
+            description: 'For small teams getting started',
+            price: '$0',
             buttonText: 'Get Started',
             features: [
-                'Up to 10 projects',
-                '10 AI tasks/month',
-                'Basic text generation',
-                'Simple chatbot access',
-                'Email support only',
-                'Community resources'
+                'Up to 10 resources',
+                '1 user',
+                'Basic calendar view',
+                'Email support',
+                '7-day schedule history',
+                'Mobile access'
             ],
         },
         {
             icon: ZapIcon,
-            title: 'Professional',
-            description: 'For growing teams and startups',
-            price: '$49',
+            title: 'Pro',
+            description: 'For growing teams',
+            price: '$29',
             mostPopular: true,
-            buttonText: 'Upgrade Now',
+            buttonText: 'Start Free Trial',
             features: [
-                'Unlimited AI tasks',
-                'API integration',
-                'Text & image outputs',
-                'Priority chat & email support',
-                'Detailed analytics',
-                'Team collaboration'
+                'Unlimited resources',
+                'Up to 10 users',
+                'Drag & drop scheduling',
+                'Conflict detection',
+                'Unlimited history',
+                'Priority support'
             ],
         },
         {
             icon: CrownIcon,
             title: 'Enterprise',
-            description: 'For enterprises and agencies',
-            price: '$149',
+            description: 'For large organizations',
+            price: '$99',
             buttonText: 'Contact Sales',
             features: [
-                'Custom AI models',
-                'Team access control',
+                'Everything in Pro',
+                'Unlimited users',
+                'Custom integrations',
                 'Dedicated account manager',
-                'Secure private API',
-                'SLA uptime guarantee',
-                '24/7 premium support'
+                'SSO / SAML',
+                'SLA guarantee'
             ],
         },
     ];
@@ -57,8 +57,8 @@ export default function PricingPlans() {
     return (
         <section className="mt-32">
             <SectionTitle
-                title="Our Pricing Plans"
-                description="A visual collection of our most recent works - each piece crafted with intention, emotion and style."
+                title="Simple, transparent pricing"
+                description="Start free. Upgrade when you need more."
             />
 
             <div className='mt-12 flex flex-wrap items-center justify-center gap-6'>

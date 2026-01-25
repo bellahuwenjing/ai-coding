@@ -5,24 +5,24 @@ import { ExternalLinkIcon } from "lucide-react";
 const steps = [
     {
         id: 1,
-        title: "Start with a prompt",
-        description: "Start with a simple prompt describing what you want your agent to do. Our builder interprets your idea and creates the structure for you in seconds",
+        title: "Add Your Resources",
+        description: "Import your team members, vehicles, and equipment. Set availability, skills, and certifications for each resource.",
         link: "#!",
-        image: "/assets/workflow1.png",
+        image: "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&h=400&fit=crop",
     },
     {
         id: 2,
-        title: "Adjust and personalize",
-        description: "Adjust tasks, actions and integrations. Add personality, rules and data sources to make the agent work exactly the way you want.",
+        title: "Create Schedules",
+        description: "Drag and drop to assign resources to jobs. See availability at a glance and avoid conflicts automatically.",
         link: "#!",
-        image: "/assets/workflow2.png",
+        image: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=600&h=400&fit=crop",
     },
     {
         id: 3,
-        title: "Launch & Automate",
-        description: "Deploy your agent and let it run. It executes tasks autonomously, reports results, and continues working in the background.",
+        title: "Stay in Sync",
+        description: "Your team sees their schedules in real-time. Changes sync instantly across all devices.",
         link: "#!",
-        image: "/assets/workflow3.png",
+        image: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&h=400&fit=crop",
     },
 ];
 
@@ -30,8 +30,8 @@ export default function WorkflowSteps() {
     return (
         <section className="mt-32 relative">
             <SectionTitle
-                title="From idea to autonomous agent quickly and effortlessly."
-                description="Empower your business with AI agents that optimize processes and accelerate performance."
+                title="From chaos to clarity in three simple steps"
+                description="Get your entire operation scheduled and synced in minutes, not hours."
             />
 
             <motion.div className="relative space-y-20 md:space-y-30 mt-20"

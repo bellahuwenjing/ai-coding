@@ -15,7 +15,7 @@ export default function CallToAction() {
                 viewport={{ once: true }}
                 transition={{ type: "spring", stiffness: 280, damping: 70, mass: 1 }}
             >
-                Ready to build?
+                Ready to take control of your schedule?
             </motion.h2>
             <motion.p className="mt-4 text-sm/7 max-w-md"
                 initial={{ y: 80, opacity: 0 }}
@@ -23,7 +23,7 @@ export default function CallToAction() {
                 viewport={{ once: true }}
                 transition={{ type: "spring", stiffness: 200, damping: 70, mass: 1 }}
             >
-                See how fast you can turn your ideas into reality. Get started for free, no credit card required.
+                Join hundreds of teams who've eliminated scheduling chaos. Start your free trial today — no credit card required.
             </motion.p>
             <motion.button className="btn glass transition-none flex items-center gap-2 mt-8"
                 initial={{ y: 80, opacity: 0 }}
@@ -31,7 +31,7 @@ export default function CallToAction() {
                 viewport={{ once: true }}
                 transition={{ type: "spring", stiffness: 280, damping: 70, mass: 1 }}
             >
-                Try now
+                Start Free Trial
                 <ArrowRightIcon className="size-4" />
             </motion.button>
         </motion.div>
