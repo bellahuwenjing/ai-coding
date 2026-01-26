@@ -270,3 +270,88 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 - Read referenced transcript files when implementing plans from previous sessions
 
 ---
+
+### Prompt 20
+
+**User (exact words):**
+> ok let's work on something different next. I've renamed the two prd files for landing page: 1. @..\docs\prd\PRD-landing-page-modifications.md focuses on how to convert a fully built landing page to suit my product 2. @..\docs\prd\PRD-landing-page.md is the original prd that contains useful info that you suggested right from the beginning, and i plan to work on parts of it to refine the scope and some details. can you see how these two prd relate to each other?
+
+**User (follow-up, exact words):**
+> I want the product summary (1.1) to be less vague and more descriptive about what the app can do. also remove sections 2,7,8,9,11
+
+**User (follow-up, exact words):**
+> create an implementation plan based on @..\docs\prd\PRD-frontend.md
+
+**Response:**
+1. Fixed section numbering in `docs/prd/PRD-landing-page.md` after user had already updated product summary and removed sections 2,7,8,9,11:
+   - Renumbered sections from inconsistent 3.x/4.x/5.x/6.x to sequential 2.x/3.x/4.x/5.x
+   - Section 2: Page Structure (2.1-2.9)
+   - Section 3: Design Requirements (3.1-3.4)
+   - Section 4: Functional Requirements (4.1-4.5)
+   - Section 5: Content Requirements (5.1-5.2)
+
+2. Created `docs/frontend-implementation-plan.md` with 11-phase implementation plan:
+   - Phase 1: Project Setup & Infrastructure (Week 1)
+   - Phase 2: Backbone Foundation (Week 1-2)
+   - Phase 3: Authentication (Week 2)
+   - Phase 4: Common Components (Week 2-3)
+   - Phase 5: Dashboard (Week 3)
+   - Phase 6: Resource Management (Week 4-5)
+   - Phase 7: Booking Management (Week 6-7)
+   - Phase 8: Calendar Views (Week 8-9)
+   - Phase 9: Settings & Member View (Week 10)
+   - Phase 10: Integration & Testing (Week 11-12)
+   - Phase 11: Polish & Deployment (Week 12-13)
+   - Total timeline: 12-13 weeks
+   - Included detailed tasks with checkboxes, files to create, technical integration details, and dependencies
+
+---
+
+### Prompt 21
+
+**User (exact words):**
+> Update @..\docs\prd\PRD-frontend.md so that it provides adequate info on the product's purpose, its features, functionalities, and behavior.
+
+**Response:** Massively expanded `docs/prd/PRD-frontend.md` from minimal overview to comprehensive product specification:
+
+1. **Expanded Section 1.1 - Product Summary:**
+   - Changed from 1 sentence to detailed multi-paragraph description
+   - Added Core Purpose, Key Capabilities, Target Users, and Industries sections
+   - Explained unified resource management, conflict prevention, role-based access, recurring bookings
+
+2. **Added Section 1.3 - User Problems Solved:**
+   - Before/After comparison table
+   - 8 pain points addressed (spreadsheets, double-bookings, visibility, communication, utilization, coordination, tracking, scalability)
+
+3. **Created Section 2 - User Stories & Workflows (entirely new):**
+   - 2.1 Admin User Stories (4 detailed stories with acceptance criteria)
+   - 2.2 Member User Stories (3 detailed stories with acceptance criteria)
+   - 2.3 Key User Workflows:
+     - Workflow 1: Create a New Booking (Admin) - 14 steps with conflict scenario handling
+     - Workflow 2: View My Schedule (Member) - 6 steps
+     - Workflow 3: Add a New Person to Company (Admin) - 10 steps
+     - Workflow 4: Resolve a Booking Conflict (Admin) - 8 steps with multiple resolution paths
+
+4. **Created Section 3 - Functional Requirements & Behavior (entirely new):**
+   - 3.1 Resource Management Behavior (creating, editing, deleting, availability)
+   - 3.2 Booking Management Behavior (conflict detection logic with examples, recurring patterns, deletion)
+   - 3.3 Calendar Behavior (view modes, navigation, filtering, drag-and-drop)
+   - 3.4 Dashboard Behavior (metrics, upcoming bookings, resource availability)
+   - 3.5 Authentication Behavior (login, company association, role application)
+   - 3.6 Real-Time Sync Behavior (sync mechanism, optimistic updates, offline handling)
+   - 3.7 Mobile Behavior (touch interactions, responsive adjustments, mobile-specific features)
+   - 3.8 Error Handling Behavior (validation, network, conflict, permission errors)
+
+5. **Created Section 4 - Success Criteria (entirely new):**
+   - 4.1 User Adoption Metrics (daily login rates, booking creation volume)
+   - 4.2 Efficiency Metrics (booking creation time, conflict accuracy, reduction in double-bookings)
+   - 4.3 Performance Metrics (page load, sync latency, mobile responsiveness)
+   - 4.4 Usability Metrics (new user onboarding, mobile usage, support tickets)
+
+6. **Renumbered remaining sections:**
+   - Section 5: Technical Stack (formerly Section 2)
+   - Section 6: Project Architecture (formerly Section 3)
+
+**Document grew from ~480 lines to comprehensive specification with behavior details, workflows, and measurable success criteria.**
+
+---

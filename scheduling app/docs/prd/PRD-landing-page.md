@@ -24,7 +24,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 
 ## 2. Page Structure
 
-### 3.1 Hero Section
+### 2.1 Hero Section
 
 **Purpose:** Immediately communicate what the product does and its primary benefit
 
@@ -36,7 +36,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 - Secondary CTA: "Book a Demo" link
 - Hero image/illustration: Dashboard preview or animated product demonstration
 
-### 3.2 Problem Statement Section
+### 2.2 Problem Statement Section
 
 **Purpose:** Connect with visitor pain points
 
@@ -48,7 +48,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
   - No visibility into resource availability
   - Communication gaps between teams
 
-### 3.3 Features Section
+### 2.3 Features Section
 
 **Purpose:** Showcase core capabilities
 
@@ -63,7 +63,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 | Real-Time Updates        | Instant sync across all users            |
 | Reporting & Analytics    | Utilization rates and insights           |
 
-### 3.4 How It Works Section
+### 2.4 How It Works Section
 
 **Purpose:** Demonstrate simplicity
 
@@ -74,7 +74,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 2. **Create Schedules** — Drag and drop to assign resources to jobs
 3. **Stay Synced** — Everyone sees updates in real-time
 
-### 3.5 Social Proof Section
+### 2.5 Social Proof Section
 
 **Purpose:** Build trust and credibility
 
@@ -85,7 +85,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 - Key metrics (e.g., "Trusted by 500+ companies", "50,000 resources scheduled daily")
 - Star rating from review platforms (G2, Capterra)
 
-### 3.6 Pricing Section
+### 2.6 Pricing Section
 
 **Purpose:** Qualify leads and set expectations
 
@@ -96,7 +96,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 - "Contact us for enterprise" option
 - Free trial messaging
 
-### 3.7 FAQ Section
+### 2.7 FAQ Section
 
 **Purpose:** Address common objections
 
@@ -108,7 +108,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 - Is my data secure?
 - Can I cancel anytime?
 
-### 3.8 Final CTA Section
+### 2.8 Final CTA Section
 
 **Purpose:** Capture visitors ready to convert
 
@@ -118,7 +118,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 - Email capture form or CTA buttons
 - "No credit card required" messaging
 
-### 3.9 Footer
+### 2.9 Footer
 
 **Content:**
 
@@ -131,25 +131,25 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 
 ## 3. Design Requirements
 
-### 4.1 Visual Style
+### 3.1 Visual Style
 
 - Clean, professional, modern B2B SaaS aesthetic
 - Ample white space
 - Consistent iconography
 - Product screenshots with device mockups
 
-### 4.2 Color Palette
+### 3.2 Color Palette
 
 - Primary: Professional blue or teal (trust, reliability)
 - Accent: Contrasting color for CTAs (orange, green)
 - Neutrals: Grays for text and backgrounds
 
-### 4.3 Typography
+### 3.3 Typography
 
 - Headings: Bold sans-serif (e.g., Inter, Plus Jakarta Sans)
 - Body: Readable sans-serif, 16px minimum
 
-### 4.4 Responsive Design
+### 3.4 Responsive Design
 
 - Desktop-first with full mobile optimization
 - Collapsible navigation on mobile
@@ -159,26 +159,26 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 
 ## 4. Functional Requirements
 
-### 5.1 Forms
+### 4.1 Forms
 
 - **Trial Signup:** Name, Email, Company Name, Company Size (dropdown)
 - **Demo Request:** Name, Email, Phone, Company, Preferred Time
 - Form validation with inline error messages
 - Success confirmation messages
 
-### 5.2 Navigation
+### 4.2 Navigation
 
 - Sticky header on scroll
 - Smooth scroll to page sections
 - Clear visual hierarchy
 
-### 5.3 Performance
+### 4.3 Performance
 
 - Page load time < 3 seconds
 - Optimized images (WebP format, lazy loading)
 - Minimal JavaScript blocking
 
-### 5.4 Analytics & Tracking
+### 4.4 Analytics & Tracking
 
 - Google Analytics 4 integration
 - Event tracking for:
@@ -188,7 +188,7 @@ Convert visitors into trial signups or demo requests by clearly communicating th
   - Video plays (if applicable)
 - Facebook Pixel / LinkedIn Insight Tag (for retargeting)
 
-### 5.5 SEO Requirements
+### 4.5 SEO Requirements
 
 - Meta title and description optimized for primary keywords
 - Semantic HTML structure (H1, H2, H3 hierarchy)
@@ -199,14 +199,14 @@ Convert visitors into trial signups or demo requests by clearly communicating th
 
 ## 5. Content Requirements
 
-### 6.1 Copy Guidelines
+### 5.1 Copy Guidelines
 
 - Benefit-focused, not feature-focused
 - Active voice
 - Concise sentences
 - Address "you" (the customer), not "we"
 
-### 6.2 Assets Needed
+### 5.2 Assets Needed
 
 - Product screenshots (dashboard, calendar, mobile views)
 - Customer photos and testimonials
