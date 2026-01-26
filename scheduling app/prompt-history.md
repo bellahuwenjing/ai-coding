@@ -186,6 +186,41 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 ### Prompt 14
 
 **User (exact words):**
+> Your transfer list looks more like what i have in mind. I need two modifications:
+> 1. instead of a panel for selected resources, I want it to be about the booking (displaying location and date time) with those selected resources shown inside of it
+> 2. i want resources grouped by type and not displayed in one list. there should be 3 tabs on the panel for available resources for people, vehicle and equipment each.
+
+**Context:** This was part of a plan mode session where I was updating the Frontend PRD to support multi-resource bookings. The user initially requested that bookings support multiple resources (people, vehicles, equipment) via a many-to-many relationship.
+
+**My Response:** I proactively offered 5 UI pattern alternatives for resource assignment:
+1. Multi-Select Dropdown
+2. **Transfer List (Shuttle)** ← User chose this
+3. Checkbox List + Filter
+4. Checkbox Grid
+5. Chip/Tag Input
+
+After asking clarification questions via AskUserQuestion (user prioritized clarity/discoverability with 15-50 resources to choose from), I recommended the Transfer List pattern and showed a visual mockup.
+
+**User's Decision:** Chose the click-based transfer list pattern with two specific modifications:
+- **Right panel:** Changed from "Selected Resources" to "Booking Context Panel" displaying location, date/time, with assigned resources shown as removable chips inside
+- **Left panel:** Changed from unified resource list to tabbed interface (People | Vehicles | Equipment tabs) with search/filter per tab
+
+**Implementation:** Updated Frontend PRD with ResourceAssignmentPanel component specification:
+- Left panel: Tabbed entity selection (People/Vehicles/Equipment) with search
+- Right panel: Booking context card showing location, date, time, and assigned entities as chips with remove (✕) buttons
+- Interaction: Click entity in left panel → adds to booking; Click ✕ on chip → removes from booking
+- No drag-and-drop for resource assignment (drag-and-drop is only used for rescheduling bookings in calendar view)
+
+**Files Updated:**
+- `docs/prd/PRD-frontend.md` - Added ResourceAssignmentPanel component spec with transfer-list UI (lines 886-954)
+
+**Session:** Plan mode session (transcript: `02e46dbc-78a3-4c37-8c93-242c9b516673.jsonl`)
+
+---
+
+### Prompt 15
+
+**User (exact words):**
 > the current design mix people, vehicle and equipment all together under the umbrella term resource in both frontend and backend. That will create problems later as they have different data fields to store and different attributes to display. separate resournces into 3 different entities.
 
 **Paraphrase:** The current architecture uses a single `resources` entity for people, vehicles, and equipment, but this will cause issues since each type has different data fields and display attributes. Separate them into three distinct entities.
@@ -216,7 +251,7 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
 
-### Prompt 15
+### Prompt 16
 
 **User (exact words):**
 > please also update prompt-history.md with my exact prompts along with your paraphrase
@@ -225,7 +260,7 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
 
-### Prompt 16
+### Prompt 17
 
 **User (exact words):**
 > my exact words were not included, the newly added prompt was your paraphrase only. is it very hard to find what i said to you previously?
@@ -234,7 +269,7 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
 
-### Prompt 17
+### Prompt 18
 
 **User (exact words):**
 > My exact words were:
@@ -245,7 +280,7 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
 
-### Prompt 18
+### Prompt 19
 
 **User (exact words):**
 > i see. so each time i switch the mode, it starts a new session which makes you lose prior context? is there a way to fix this?
@@ -260,7 +295,7 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
 
-### Prompt 19
+### Prompt 20
 
 **User (exact words):**
 > yes please. also include our questions and answers on this topic in prompt-history so that i can refer back to this conversation later.
@@ -271,7 +306,7 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
 
-### Prompt 20
+### Prompt 21
 
 **User (exact words):**
 > ok let's work on something different next. I've renamed the two prd files for landing page: 1. @..\docs\prd\PRD-landing-page-modifications.md focuses on how to convert a fully built landing page to suit my product 2. @..\docs\prd\PRD-landing-page.md is the original prd that contains useful info that you suggested right from the beginning, and i plan to work on parts of it to refine the scope and some details. can you see how these two prd relate to each other?
@@ -307,7 +342,7 @@ Product names (SchedulePro, schedulepro database) retained as-is.
 
 ---
 
-### Prompt 21
+### Prompt 22
 
 **User (exact words):**
 > Update @..\docs\prd\PRD-frontend.md so that it provides adequate info on the product's purpose, its features, functionalities, and behavior.
