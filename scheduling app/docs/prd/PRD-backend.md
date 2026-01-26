@@ -13,7 +13,8 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
 - Role-based access control (Admin, Member)
 - Separate entity management for People, Vehicles, and Equipment
 - Booking management with multi-entity assignment
-- Conflict detection across all entity types
+- Basic conflict detection
+- Soft delete with undelete functionality
 - JWT/Token authentication
 
 ---
@@ -169,13 +170,12 @@ CREATE TABLE people (
     skills JSON,                    -- ["electrical", "plumbing"]
     certifications JSON,            -- ["OSHA", "First Aid"]
     hourly_rate DECIMAL(10,2),
-    availability JSON,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
     INDEX idx_company_id (company_id),
-    INDEX idx_is_active (is_active),
+    INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 );
 ```
@@ -193,13 +193,12 @@ CREATE TABLE vehicles (
     license_plate VARCHAR(20),
     vin VARCHAR(17),
     capacity VARCHAR(50),
-    availability JSON,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
     INDEX idx_company_id (company_id),
-    INDEX idx_is_active (is_active),
+    INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 );
 ```
@@ -215,33 +214,14 @@ CREATE TABLE equipment (
     manufacturer VARCHAR(100),
     model VARCHAR(100),
     condition ENUM('excellent', 'good', 'fair', 'poor'),
-    last_maintenance DATE,
-    next_maintenance DATE,
-    availability JSON,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
     INDEX idx_company_id (company_id),
-    INDEX idx_is_active (is_active),
+    INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 );
-```
-
-**Availability JSON Structure (shared across all entity types):**
-```json
-{
-    "monday": { "start": "09:00", "end": "17:00" },
-    "tuesday": { "start": "09:00", "end": "17:00" },
-    "wednesday": { "start": "09:00", "end": "17:00" },
-    "thursday": { "start": "09:00", "end": "17:00" },
-    "friday": { "start": "09:00", "end": "17:00" },
-    "saturday": null,
-    "sunday": null,
-    "exceptions": [
-        { "date": "2026-01-01", "available": false, "reason": "Holiday" }
-    ]
-}
 ```
 
 ### 4.7 bookings
@@ -252,20 +232,20 @@ CREATE TABLE bookings (
     company_id BIGINT UNSIGNED NOT NULL,
     created_by BIGINT UNSIGNED NOT NULL,
     title VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NULL,
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
     notes TEXT NULL,
-    recurrence_rule VARCHAR(255) NULL,
-    parent_booking_id BIGINT UNSIGNED NULL,
+    is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
     INDEX idx_company_id (company_id),
     INDEX idx_start_time (start_time),
     INDEX idx_end_time (end_time),
+    INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
 ```
 
@@ -482,13 +462,10 @@ class CreatePeopleTable extends Migration
                 'constraint' => '10,2',
                 'null' => true,
             ],
-            'availability' => [
-                'type' => 'JSON',
-                'null' => true,
-            ],
-            'is_active' => [
-                'type' => 'BOOLEAN',
-                'default' => true,
+            'is_deleted' => [
+                'type' => 'TINYINT',
+                'constraint' => 1,
+                'default' => 0,
             ],
             'created_at' => [
                 'type' => 'TIMESTAMP',
@@ -502,7 +479,7 @@ class CreatePeopleTable extends Migration
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addKey('is_active', false, false, 'idx_is_active');
+        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
         $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('people');
     }
@@ -569,13 +546,10 @@ class CreateVehiclesTable extends Migration
                 'constraint' => 50,
                 'null' => true,
             ],
-            'availability' => [
-                'type' => 'JSON',
-                'null' => true,
-            ],
-            'is_active' => [
-                'type' => 'BOOLEAN',
-                'default' => true,
+            'is_deleted' => [
+                'type' => 'TINYINT',
+                'constraint' => 1,
+                'default' => 0,
             ],
             'created_at' => [
                 'type' => 'TIMESTAMP',
@@ -589,7 +563,7 @@ class CreateVehiclesTable extends Migration
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addKey('is_active', false, false, 'idx_is_active');
+        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
         $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('vehicles');
     }
@@ -646,21 +620,10 @@ class CreateEquipmentTable extends Migration
                 'constraint' => ['excellent', 'good', 'fair', 'poor'],
                 'null' => true,
             ],
-            'last_maintenance' => [
-                'type' => 'DATE',
-                'null' => true,
-            ],
-            'next_maintenance' => [
-                'type' => 'DATE',
-                'null' => true,
-            ],
-            'availability' => [
-                'type' => 'JSON',
-                'null' => true,
-            ],
-            'is_active' => [
-                'type' => 'BOOLEAN',
-                'default' => true,
+            'is_deleted' => [
+                'type' => 'TINYINT',
+                'constraint' => 1,
+                'default' => 0,
             ],
             'created_at' => [
                 'type' => 'TIMESTAMP',
@@ -674,7 +637,7 @@ class CreateEquipmentTable extends Migration
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addKey('is_active', false, false, 'idx_is_active');
+        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
         $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('equipment');
     }
@@ -721,19 +684,19 @@ class CreateBookingsTable extends Migration
             'end_time' => [
                 'type' => 'DATETIME',
             ],
-            'notes' => [
-                'type' => 'TEXT',
-                'null' => true,
-            ],
-            'recurrence_rule' => [
+            'location' => [
                 'type' => 'VARCHAR',
                 'constraint' => 255,
                 'null' => true,
             ],
-            'parent_booking_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
+            'notes' => [
+                'type' => 'TEXT',
                 'null' => true,
+            ],
+            'is_deleted' => [
+                'type' => 'TINYINT',
+                'constraint' => 1,
+                'default' => 0,
             ],
             'created_at' => [
                 'type' => 'TIMESTAMP',
@@ -749,9 +712,9 @@ class CreateBookingsTable extends Migration
         $this->forge->addKey('company_id', false, false, 'idx_company_id');
         $this->forge->addKey('start_time', false, false, 'idx_start_time');
         $this->forge->addKey('end_time', false, false, 'idx_end_time');
+        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
         $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('created_by', 'users', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('parent_booking_id', 'bookings', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('bookings');
     }
 
@@ -961,12 +924,13 @@ Response (200):
 | POST | `/api/people` | Create person | Admin |
 | GET | `/api/people/{id}` | Get person details | All |
 | PUT | `/api/people/{id}` | Update person | Admin |
-| DELETE | `/api/people/{id}` | Delete person | Admin |
+| DELETE | `/api/people/{id}` | Soft delete person (sets is_deleted=1) | Admin |
+| POST | `/api/people/{id}/undelete` | Undelete person (sets is_deleted=0) | Admin |
 
 **GET /api/people**
 
 Query Parameters:
-- `is_active` (boolean): Filter by active status
+- `include_deleted` (boolean): Include deleted people (default: false)
 - `search` (string): Search by name
 - `per_page` (integer): Items per page (default: 25)
 - `page` (integer): Page number
@@ -983,8 +947,7 @@ Response (200):
             "skills": ["electrical", "plumbing"],
             "certifications": ["OSHA", "First Aid"],
             "hourly_rate": 25.00,
-            "is_active": true,
-            "availability": { ... },
+            "is_deleted": false,
             "created_at": "2026-01-15T10:00:00Z",
             "updated_at": "2026-01-15T10:00:00Z"
         }
@@ -1008,11 +971,7 @@ Request:
     "phone": "+1234567890",
     "skills": ["plumbing", "welding"],
     "certifications": ["First Aid"],
-    "hourly_rate": 30.00,
-    "availability": {
-        "monday": { "start": "09:00", "end": "17:00" },
-        "tuesday": { "start": "09:00", "end": "17:00" }
-    }
+    "hourly_rate": 30.00
 }
 ```
 
@@ -1027,8 +986,7 @@ Response (201):
         "skills": ["plumbing", "welding"],
         "certifications": ["First Aid"],
         "hourly_rate": 30.00,
-        "is_active": true,
-        "availability": { ... },
+        "is_deleted": false,
         "created_at": "2026-01-22T14:30:00Z",
         "updated_at": "2026-01-22T14:30:00Z"
     }
@@ -1045,12 +1003,13 @@ Response (201):
 | POST | `/api/vehicles` | Create vehicle | Admin |
 | GET | `/api/vehicles/{id}` | Get vehicle details | All |
 | PUT | `/api/vehicles/{id}` | Update vehicle | Admin |
-| DELETE | `/api/vehicles/{id}` | Delete vehicle | Admin |
+| DELETE | `/api/vehicles/{id}` | Soft delete vehicle (sets is_deleted=1) | Admin |
+| POST | `/api/vehicles/{id}/undelete` | Undelete vehicle (sets is_deleted=0) | Admin |
 
 **GET /api/vehicles**
 
 Query Parameters:
-- `is_active` (boolean): Filter by active status
+- `include_deleted` (boolean): Include deleted vehicles (default: false)
 - `search` (string): Search by name
 - `per_page` (integer): Items per page (default: 25)
 - `page` (integer): Page number
@@ -1068,8 +1027,7 @@ Response (200):
             "license_plate": "ABC-1234",
             "vin": "1FTFW1E85MFA12345",
             "capacity": "1500 lbs",
-            "is_active": true,
-            "availability": { ... },
+            "is_deleted": false,
             "created_at": "2026-01-15T10:00:00Z",
             "updated_at": "2026-01-15T10:00:00Z"
         }
@@ -1094,11 +1052,7 @@ Request:
     "year": 2024,
     "license_plate": "XYZ-789",
     "vin": "1FTFW1E85MFA54321",
-    "capacity": "1500 lbs",
-    "availability": {
-        "monday": { "start": "06:00", "end": "18:00" },
-        "tuesday": { "start": "06:00", "end": "18:00" }
-    }
+    "capacity": "1500 lbs"
 }
 ```
 
@@ -1114,8 +1068,7 @@ Response (201):
         "license_plate": "XYZ-789",
         "vin": "1FTFW1E85MFA54321",
         "capacity": "1500 lbs",
-        "is_active": true,
-        "availability": { ... },
+        "is_deleted": false,
         "created_at": "2026-01-22T14:30:00Z",
         "updated_at": "2026-01-22T14:30:00Z"
     }
@@ -1132,12 +1085,13 @@ Response (201):
 | POST | `/api/equipment` | Create equipment | Admin |
 | GET | `/api/equipment/{id}` | Get equipment details | All |
 | PUT | `/api/equipment/{id}` | Update equipment | Admin |
-| DELETE | `/api/equipment/{id}` | Delete equipment | Admin |
+| DELETE | `/api/equipment/{id}` | Soft delete equipment (sets is_deleted=1) | Admin |
+| POST | `/api/equipment/{id}/undelete` | Undelete equipment (sets is_deleted=0) | Admin |
 
 **GET /api/equipment**
 
 Query Parameters:
-- `is_active` (boolean): Filter by active status
+- `include_deleted` (boolean): Include deleted equipment (default: false)
 - `condition` (string): Filter by condition (excellent, good, fair, poor)
 - `search` (string): Search by name
 - `per_page` (integer): Items per page (default: 25)
@@ -1154,10 +1108,7 @@ Response (200):
             "manufacturer": "CAT",
             "model": "320 Excavator",
             "condition": "good",
-            "last_maintenance": "2025-12-01",
-            "next_maintenance": "2026-03-01",
-            "is_active": true,
-            "availability": { ... },
+            "is_deleted": false,
             "created_at": "2026-01-15T10:00:00Z",
             "updated_at": "2026-01-15T10:00:00Z"
         }
@@ -1180,13 +1131,7 @@ Request:
     "serial_number": "GEN-003",
     "manufacturer": "Honda",
     "model": "EU7000is",
-    "condition": "excellent",
-    "last_maintenance": "2026-01-10",
-    "next_maintenance": "2026-04-10",
-    "availability": {
-        "monday": { "start": "06:00", "end": "20:00" },
-        "tuesday": { "start": "06:00", "end": "20:00" }
-    }
+    "condition": "excellent"
 }
 ```
 
@@ -1200,10 +1145,7 @@ Response (201):
         "manufacturer": "Honda",
         "model": "EU7000is",
         "condition": "excellent",
-        "last_maintenance": "2026-01-10",
-        "next_maintenance": "2026-04-10",
-        "is_active": true,
-        "availability": { ... },
+        "is_deleted": false,
         "created_at": "2026-01-22T14:30:00Z",
         "updated_at": "2026-01-22T14:30:00Z"
     }
@@ -1220,7 +1162,8 @@ Response (201):
 | POST | `/api/bookings` | Create booking | Admin |
 | GET | `/api/bookings/{id}` | Get booking details | All |
 | PUT | `/api/bookings/{id}` | Update booking | Admin |
-| DELETE | `/api/bookings/{id}` | Delete booking | Admin |
+| DELETE | `/api/bookings/{id}` | Soft delete booking (sets is_deleted=1) | Admin |
+| POST | `/api/bookings/{id}/undelete` | Undelete booking (sets is_deleted=0) | Admin |
 | GET | `/api/bookings/conflicts` | Check for conflicts | All |
 
 **GET /api/bookings**
@@ -1231,6 +1174,7 @@ Query Parameters:
 - `equipment_id` (integer): Filter by equipment
 - `start_date` (date): Start of date range (required)
 - `end_date` (date): End of date range (required)
+- `include_deleted` (boolean): Include deleted bookings (default: false)
 - `per_page` (integer): Items per page
 
 Response (200):
@@ -1240,10 +1184,11 @@ Response (200):
         {
             "id": 1,
             "title": "Site Visit - 123 Main St",
+            "location": "123 Main St",
             "start_time": "2026-01-22T09:00:00Z",
             "end_time": "2026-01-22T12:00:00Z",
             "notes": "Bring electrical tools",
-            "recurrence_rule": null,
+            "is_deleted": false,
             "people": [
                 {
                     "id": 1,
@@ -1289,8 +1234,7 @@ Request:
     "person_ids": [1, 3],
     "vehicle_ids": [2],
     "equipment_ids": [5, 7],
-    "notes": "Quarterly maintenance check",
-    "recurrence_rule": "weekly"
+    "notes": "Quarterly maintenance check"
 }
 ```
 
@@ -1304,7 +1248,7 @@ Response (201):
         "start_time": "2026-01-25T10:00:00Z",
         "end_time": "2026-01-25T14:00:00Z",
         "notes": "Quarterly maintenance check",
-        "recurrence_rule": "weekly",
+        "is_deleted": false,
         "people": [
             {
                 "id": 1,
@@ -1488,8 +1432,7 @@ class PersonModel extends BaseModel
         'skills',
         'certifications',
         'hourly_rate',
-        'availability',
-        'is_active'
+        'is_deleted'
     ];
 
     protected $validationRules = [
@@ -1500,8 +1443,7 @@ class PersonModel extends BaseModel
     protected $casts = [
         'skills'         => 'json-array',
         'certifications' => 'json-array',
-        'availability'   => 'json-array',
-        'is_active'      => 'boolean',
+        'is_deleted'     => 'boolean',
         'hourly_rate'    => 'float',
     ];
 
@@ -1514,8 +1456,8 @@ class PersonModel extends BaseModel
     {
         $this->where('company_id', $companyId);
 
-        if (isset($filters['is_active'])) {
-            $this->where('is_active', (bool) $filters['is_active']);
+        if (!isset($filters['include_deleted']) || !$filters['include_deleted']) {
+            $this->where('is_deleted', 0);
         }
 
         if (!empty($filters['search'])) {
@@ -1562,8 +1504,7 @@ class VehicleModel extends BaseModel
         'license_plate',
         'vin',
         'capacity',
-        'availability',
-        'is_active'
+        'is_deleted'
     ];
 
     protected $validationRules = [
@@ -1571,8 +1512,7 @@ class VehicleModel extends BaseModel
     ];
 
     protected $casts = [
-        'availability' => 'json-array',
-        'is_active'    => 'boolean',
+        'is_deleted'   => 'boolean',
         'year'         => 'integer',
     ];
 
@@ -1585,8 +1525,8 @@ class VehicleModel extends BaseModel
     {
         $this->where('company_id', $companyId);
 
-        if (isset($filters['is_active'])) {
-            $this->where('is_active', (bool) $filters['is_active']);
+        if (!isset($filters['include_deleted']) || !$filters['include_deleted']) {
+            $this->where('is_deleted', 0);
         }
 
         if (!empty($filters['search'])) {
@@ -1631,10 +1571,7 @@ class EquipmentModel extends BaseModel
         'manufacturer',
         'model',
         'condition',
-        'last_maintenance',
-        'next_maintenance',
-        'availability',
-        'is_active'
+        'is_deleted'
     ];
 
     protected $validationRules = [
@@ -1643,8 +1580,7 @@ class EquipmentModel extends BaseModel
     ];
 
     protected $casts = [
-        'availability' => 'json-array',
-        'is_active'    => 'boolean',
+        'is_deleted' => 'boolean',
     ];
 
     protected $beforeInsert = ['setCompanyId'];
@@ -1656,8 +1592,8 @@ class EquipmentModel extends BaseModel
     {
         $this->where('company_id', $companyId);
 
-        if (isset($filters['is_active'])) {
-            $this->where('is_active', (bool) $filters['is_active']);
+        if (!isset($filters['include_deleted']) || !$filters['include_deleted']) {
+            $this->where('is_deleted', 0);
         }
 
         if (!empty($filters['condition'])) {
@@ -1707,8 +1643,7 @@ class BookingModel extends BaseModel
         'start_time',
         'end_time',
         'notes',
-        'recurrence_rule',
-        'parent_booking_id'
+        'is_deleted'
     ];
 
     protected $validationRules = [
@@ -2302,6 +2237,13 @@ use App\Models\VehicleModel;
 use App\Models\EquipmentModel;
 use CodeIgniter\I18n\Time;
 
+/**
+ * Basic conflict detection for booking overlaps
+ *
+ * NOTE: This is a simplified implementation for initial MVP.
+ * Detailed conflict resolution behavior and edge cases will be
+ * defined and implemented after basic features are established.
+ */
 class ConflictDetection
 {
     protected BookingModel $bookingModel;
@@ -2575,11 +2517,6 @@ class BookingService
             $this->bookingEquipmentModel->attachMany($bookingId, $equipmentIds);
         }
 
-        // Handle recurring bookings
-        if (!empty($data['recurrence_rule'])) {
-            $this->createRecurringInstances($bookingId, $data, $personIds, $vehicleIds, $equipmentIds);
-        }
-
         $db->transComplete();
 
         if ($db->transStatus() === false) {
@@ -2592,61 +2529,6 @@ class BookingService
         $booking['equipment'] = $this->bookingModel->getEquipment($bookingId);
 
         return $booking;
-    }
-
-    /**
-     * Create recurring booking instances
-     */
-    private function createRecurringInstances(
-        int $parentId,
-        array $data,
-        array $personIds,
-        array $vehicleIds,
-        array $equipmentIds
-    ): void {
-        $rule = $data['recurrence_rule'];
-        $start = Time::parse($data['start_time']);
-        $end = Time::parse($data['end_time']);
-        $duration = $start->difference($end)->getMinutes();
-
-        $limit = Time::now()->addMonths(3);
-
-        while ($start->isBefore($limit)) {
-            $start = match ($rule) {
-                'daily'   => $start->addDays(1),
-                'weekly'  => $start->addDays(7),
-                'monthly' => $start->addMonths(1),
-                default   => $limit,
-            };
-
-            if ($start->isBefore($limit)) {
-                $instanceEnd = $start->addMinutes($duration);
-
-                $instanceData = [
-                    'company_id'        => $data['company_id'],
-                    'created_by'        => $data['created_by'],
-                    'title'             => $data['title'],
-                    'location'          => $data['location'] ?? null,
-                    'start_time'        => $start->toDateTimeString(),
-                    'end_time'          => $instanceEnd->toDateTimeString(),
-                    'notes'             => $data['notes'] ?? null,
-                    'parent_booking_id' => $parentId,
-                ];
-
-                $instanceId = $this->bookingModel->insert($instanceData);
-
-                // Attach same entities to recurring instance
-                if (!empty($personIds)) {
-                    $this->bookingPersonModel->attachMany($instanceId, $personIds);
-                }
-                if (!empty($vehicleIds)) {
-                    $this->bookingVehicleModel->attachMany($instanceId, $vehicleIds);
-                }
-                if (!empty($equipmentIds)) {
-                    $this->bookingEquipmentModel->attachMany($instanceId, $equipmentIds);
-                }
-            }
-        }
     }
 
     /**
@@ -2754,7 +2636,7 @@ class Validation extends BaseConfig
     public array $person = [
         'name' => 'required|max_length[255]',
         'email' => 'permit_empty|valid_email|max_length[255]',
-        'is_active' => 'permit_empty|in_list[0,1,true,false]',
+        'is_deleted' => 'permit_empty|in_list[0,1]',
     ];
 
     public array $person_errors = [
@@ -2771,7 +2653,7 @@ class Validation extends BaseConfig
     public array $vehicle = [
         'name' => 'required|max_length[255]',
         'year' => 'permit_empty|integer|greater_than[1900]|less_than[2100]',
-        'is_active' => 'permit_empty|in_list[0,1,true,false]',
+        'is_deleted' => 'permit_empty|in_list[0,1]',
     ];
 
     public array $vehicle_errors = [
@@ -2788,7 +2670,7 @@ class Validation extends BaseConfig
     public array $equipment = [
         'name' => 'required|max_length[255]',
         'condition' => 'permit_empty|in_list[excellent,good,fair,poor]',
-        'is_active' => 'permit_empty|in_list[0,1,true,false]',
+        'is_deleted' => 'permit_empty|in_list[0,1]',
     ];
 
     public array $equipment_errors = [
@@ -2806,10 +2688,11 @@ class Validation extends BaseConfig
         'title' => 'required|max_length[255]',
         'start_time' => 'required|valid_date',
         'end_time' => 'required|valid_date',
-        'recurrence_rule' => 'permit_empty|in_list[daily,weekly,monthly]',
+        'location' => 'permit_empty|max_length[255]',
         'person_ids.*' => 'permit_empty|integer',
         'vehicle_ids.*' => 'permit_empty|integer',
         'equipment_ids.*' => 'permit_empty|integer',
+        'is_deleted' => 'permit_empty|in_list[0,1]',
     ];
 
     public array $booking_errors = [
@@ -2877,8 +2760,8 @@ class PersonController extends BaseResourceController
         $user = $session->get('user');
 
         $filters = [
-            'is_active' => $this->request->getGet('is_active'),
-            'search'    => $this->request->getGet('search'),
+            'include_deleted' => $this->request->getGet('include_deleted'),
+            'search'          => $this->request->getGet('search'),
         ];
 
         $perPage = (int) ($this->request->getGet('per_page') ?? 25);
@@ -2919,8 +2802,7 @@ class PersonController extends BaseResourceController
             'skills'         => $this->request->getPost('skills'),
             'certifications' => $this->request->getPost('certifications'),
             'hourly_rate'    => $this->request->getPost('hourly_rate'),
-            'availability'   => $this->request->getPost('availability'),
-            'is_active'      => $this->request->getPost('is_active') ?? true,
+            'is_deleted'     => $this->request->getPost('is_deleted') ?? 0,
         ];
 
         $id = $this->personModel->insert($data);

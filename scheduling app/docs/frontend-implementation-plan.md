@@ -7,7 +7,7 @@
 
 This plan outlines the implementation strategy for building the SchedulePro frontend application using React for UI and Backbone.js for data management and routing.
 
-**Based on:** `docs/prd/PRD-frontend.md` v2.0
+**Based on:** `docs/prd/PRD-frontend.md` v3.0 (Simplified MVP)
 
 ---
 
@@ -45,7 +45,7 @@ This plan outlines the implementation strategy for building the SchedulePro fron
   src/
   ├── components/
   │   ├── Auth/
-  │   ├── Calendar/
+  │   ├── BookingsList/
   │   ├── ResourceList/
   │   ├── BookingForm/
   │   ├── ResourceAssignment/
@@ -88,10 +88,10 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 
 **Tasks:**
 - [ ] Create `src/models/User.js` - User model with isAdmin() method
-- [ ] Create `src/models/Person.js` - Person model with validation
-- [ ] Create `src/models/Vehicle.js` - Vehicle model with validation
-- [ ] Create `src/models/Equipment.js` - Equipment model with validation
-- [ ] Create `src/models/Booking.js` - Booking model with validation and getEntityIds() helper
+- [ ] Create `src/models/Person.js` - Person model with validation and `is_deleted` field
+- [ ] Create `src/models/Vehicle.js` - Vehicle model with validation and `is_deleted` field
+- [ ] Create `src/models/Equipment.js` - Equipment model with validation and `is_deleted` field
+- [ ] Create `src/models/Booking.js` - Booking model with validation, getEntityIds() helper, and `is_deleted` field
 - [ ] Create `src/models/Company.js` - Company model (if needed)
 
 **Validation to implement:**
@@ -99,6 +99,8 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 - At least one entity required for bookings
 - Start time before end time validation
 - Email format validation for Person
+
+**Note:** All models use soft delete (`is_deleted` flag) instead of hard deletion
 
 **Files to create:**
 - `src/models/User.js`
@@ -113,15 +115,16 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 ### 2.2 Backbone Collections
 
 **Tasks:**
-- [ ] Create `src/collections/People.js` - People collection with active() filter
-- [ ] Create `src/collections/Vehicles.js` - Vehicles collection with active() filter
-- [ ] Create `src/collections/Equipment.js` - Equipment collection with active() filter
+- [ ] Create `src/collections/People.js` - People collection with `deleted()` filter
+- [ ] Create `src/collections/Vehicles.js` - Vehicles collection with `deleted()` filter
+- [ ] Create `src/collections/Equipment.js` - Equipment collection with `deleted()` filter
 - [ ] Create `src/collections/Bookings.js` - Bookings collection with:
-  - `forPerson(personId)` method
-  - `forVehicle(vehicleId)` method
-  - `forEquipment(equipmentId)` method
-  - `inDateRange(start, end)` method
-  - `findConflicts()` method
+  - `deleted()` filter
+  - `forPerson(personId, includeDeleted)` method
+  - `forVehicle(vehicleId, includeDeleted)` method
+  - `forEquipment(equipmentId, includeDeleted)` method
+  - `inDateRange(start, end, includeDeleted)` method
+  - `findConflicts()` method (basic overlap checking)
 - [ ] Create `src/collections/Users.js` - Users collection (if needed)
 
 **Files to create:**
@@ -159,8 +162,8 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 - [ ] Create `src/router/AppRouter.js` - Backbone router with routes:
   - `/` → dashboard
   - `/dashboard` → dashboard
-  - `/calendar` → calendar (week view)
-  - `/calendar/:view` → calendar (specific view)
+  - `/bookings` → bookings list view
+  - `/bookings/:id` → booking detail
   - `/resources` → resources list
   - `/resources/:id` → resource detail
   - `/settings` → settings
@@ -314,13 +317,15 @@ This plan outlines the implementation strategy for building the SchedulePro fron
   - Active tab state
 - [ ] Create `src/components/ResourceList/PeopleFilters.jsx`
   - Search input
-  - Active/inactive filter
+  - "Hide deleted" toggle filter
 - [ ] Create `src/components/ResourceList/PeopleList.jsx`
   - Display people collection
   - Loading state
 - [ ] Create `src/components/ResourceList/PersonItem.jsx`
   - Display person details
+  - Visual distinction for deleted items (grayed out, strikethrough)
   - Edit/Delete buttons (Admin only)
+  - Undelete button for deleted items (Admin only)
   - Skills and certifications display
 - [ ] Create similar components for Vehicles and Equipment:
   - `VehiclesFilters.jsx`, `VehiclesList.jsx`, `VehicleItem.jsx`
@@ -348,23 +353,17 @@ This plan outlines the implementation strategy for building the SchedulePro fron
   - Skills (multi-select or tags)
   - Certifications (multi-select or tags)
   - Hourly rate
-  - Availability schedule
-  - Is active toggle
 - [ ] Create `src/components/ResourceList/VehicleForm.jsx`
   - Name, make, model, year
   - License plate, VIN
   - Capacity
-  - Availability schedule
-  - Is active toggle
 - [ ] Create `src/components/ResourceList/EquipmentForm.jsx`
   - Name, serial number
   - Manufacturer, model
   - Condition dropdown
-  - Maintenance dates
-  - Availability schedule
-  - Is active toggle
 - [ ] Integrate forms with modals
-- [ ] Implement create/update/delete operations
+- [ ] Implement create/update/delete (soft delete) operations
+- [ ] Implement undelete operation (sets `is_deleted = 0`)
 
 **Files to create:**
 - `src/components/ResourceList/PersonForm.jsx`
@@ -428,105 +427,101 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 ### 7.2 Booking Form
 
 **Tasks:**
-- [ ] Create `src/components/BookingForm/RecurrenceSelector.jsx`
-  - None | Daily | Weekly | Monthly options
 - [ ] Create `src/components/BookingForm/BookingForm.jsx`
   - Title, location inputs
   - Start/end time pickers
   - Notes textarea
-  - Recurrence selector
   - ResourceAssignmentPanel integration
-  - Conflict detection warning
+  - Basic conflict detection warning
   - Save/cancel buttons
+  - Delete button (soft delete) with confirmation
+  - Undelete button for deleted bookings
 - [ ] Implement validation
-- [ ] Implement conflict checking before save
-- [ ] Handle create/update operations
+- [ ] Implement basic conflict checking before save
+- [ ] Handle create/update/delete (soft delete) operations
 - [ ] Display success/error messages
 
 **Files to create:**
-- `src/components/BookingForm/RecurrenceSelector.jsx`
 - `src/components/BookingForm/BookingForm.jsx`
 
 ---
 
-### 7.3 Conflict Detection
+### 7.3 Conflict Detection (Basic)
 
 **Tasks:**
 - [ ] Create `src/utils/conflictDetection.js`
-  - findConflicts() function
-  - Check overlap for all entity types
+  - Basic findConflicts() function
+  - Check simple time overlap for all entity types
+  - Return list of conflicting bookings
 - [ ] Integrate with BookingForm
-- [ ] Display conflict warnings
-- [ ] Allow override with confirmation (if applicable)
+- [ ] Display basic conflict warnings
+- [ ] Allow user to proceed with booking despite conflicts
 
 **Files to create:**
 - `src/utils/conflictDetection.js`
 
+**Note:** This is a simplified implementation for MVP. Detailed conflict resolution behavior will be defined after basic features are established.
+
 ---
 
-## Phase 8: Calendar Views (Week 8-9)
+## Phase 8: Bookings List View (Week 8-9)
 
-### 8.1 Calendar Components
+### 8.1 Bookings List Components
 
 **Tasks:**
-- [ ] Create `src/components/Calendar/CalendarView.jsx`
-  - View toggle (Day | Week | Month)
-  - Date navigation (prev/next)
-  - Filter controls
-  - Render appropriate view component
-- [ ] Create `src/components/Calendar/DayView.jsx`
-  - 24-hour timeline
-  - Booking blocks
-  - Drag-and-drop zones
-- [ ] Create `src/components/Calendar/WeekView.jsx`
-  - 7-day grid
-  - Time slots
-  - Booking blocks
-- [ ] Create `src/components/Calendar/MonthView.jsx`
-  - Calendar grid
-  - Day cells with booking indicators
-- [ ] Create `src/components/Calendar/BookingBlock.jsx`
-  - Entity icons
-  - Booking title
-  - Time display
-  - Click handler
-  - Drag handlers (Admin only)
+- [ ] Create `src/components/BookingsList/BookingsList.jsx`
+  - Table/list container
+  - Column headers (Title, Location, Date/Time, Entities, Actions)
+  - Sortable columns
+  - Loading state
+  - Empty state
+- [ ] Create `src/components/BookingsList/BookingRow.jsx`
+  - Display booking details in row format
+  - Entity icons/badges (people, vehicles, equipment)
+  - Date and time display
+  - Edit/Delete buttons (Admin only)
+  - Visual distinction for deleted bookings
+  - Undelete button for deleted bookings (Admin only)
+  - Click handler to view details
+- [ ] Create `src/components/BookingsList/BookingFilters.jsx`
+  - Date range picker
+  - Search input (search by title, location)
+  - Entity type filters (People, Vehicles, Equipment)
+  - "Hide deleted" toggle
+  - Clear filters button
+- [ ] Create `src/components/BookingsList/BookingDetailsModal.jsx`
+  - Full booking information display
+  - List of assigned entities
+  - Edit button (opens BookingForm)
+  - Close button
 
 **Files to create:**
-- `src/components/Calendar/CalendarView.jsx`
-- `src/components/Calendar/DayView.jsx`
-- `src/components/Calendar/WeekView.jsx`
-- `src/components/Calendar/MonthView.jsx`
-- `src/components/Calendar/BookingBlock.jsx`
+- `src/components/BookingsList/BookingsList.jsx`
+- `src/components/BookingsList/BookingRow.jsx`
+- `src/components/BookingsList/BookingFilters.jsx`
+- `src/components/BookingsList/BookingDetailsModal.jsx`
 
 ---
 
-### 8.2 Drag-and-Drop (Admin Only)
+### 8.2 Bookings Page
 
 **Tasks:**
-- [ ] Implement HTML5 drag-and-drop or use react-dnd
-- [ ] Drag start handler
-- [ ] Drop zone validation
-- [ ] Conflict check on drop
-- [ ] Reschedule confirmation modal
-- [ ] Update booking on confirm
-
----
-
-### 8.3 Calendar Page
-
-**Tasks:**
-- [ ] Create `src/views/CalendarPage.jsx`
-  - CalendarView integration
-  - Fetch bookings for date range
-  - Fetch all entity collections
-  - Handle view changes
-  - Handle date navigation
-  - Handle filters
-  - Handle booking click → open BookingForm modal
+- [ ] Create `src/views/BookingsPage.jsx`
+  - BookingsList integration
+  - BookingFilters integration
+  - Fetch bookings collection on mount
+  - Handle search/filter changes
+  - Handle sorting changes
+  - Handle booking click → open BookingDetailsModal
+  - "New Booking" button (Admin only) → open BookingForm modal
+  - Pagination (if needed)
+- [ ] Implement client-side filtering and sorting
+- [ ] Handle deleted bookings visibility toggle
 
 **Files to create:**
-- `src/views/CalendarPage.jsx`
+- `src/views/BookingsPage.jsx`
+
+**Note:** Calendar view with drag-and-drop rescheduling is planned for future enhancement. For now, bookings are rescheduled by editing the booking times in the form.
 
 ---
 
@@ -538,7 +533,6 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 - [ ] Create `src/views/SettingsPage.jsx`
   - User profile section
   - Company settings (Admin only)
-  - Availability settings (if linked to resource)
   - Password change
 - [ ] Implement settings save functionality
 
@@ -551,8 +545,8 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 
 **Tasks:**
 - [ ] Implement member view restrictions
-  - Hide Create/Edit/Delete buttons
-  - Read-only calendar
+  - Hide Create/Edit/Delete/Undelete buttons
+  - Read-only bookings list
   - Filter to show only assigned bookings
 - [ ] Create member dashboard view (optional)
 - [ ] Test member role UI
@@ -590,19 +584,26 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 - [ ] Test resource CRUD operations
   - Create person, vehicle, equipment
   - Edit each type
-  - Delete each type
+  - Soft delete each type (sets `is_deleted = 1`)
+  - Verify deleted items show visual distinction
+  - Undelete each type (sets `is_deleted = 0`)
+  - Verify "Hide deleted" toggle works
 - [ ] Test booking creation
   - Single entity assignment
   - Multiple entities assignment
-  - Recurrence
-- [ ] Test conflict detection
+- [ ] Test booking soft delete
+  - Delete booking (soft delete)
+  - Verify deleted booking visibility
+  - Undelete booking
+- [ ] Test basic conflict detection
   - Create overlapping bookings
-  - Verify warning display
-- [ ] Test calendar views
-  - Day view navigation
-  - Week view navigation
-  - Month view navigation
-- [ ] Test drag-and-drop (if implemented)
+  - Verify basic warning display
+  - Verify user can proceed despite conflicts
+- [ ] Test bookings list view
+  - Search and filter bookings
+  - Sort by columns
+  - Click to view details
+  - Edit booking
 - [ ] Test member view restrictions
 - [ ] Cross-browser testing
 
@@ -627,7 +628,7 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 - [ ] Test with screen reader
 - [ ] Ensure color contrast ratios
 - [ ] Focus management in modals
-- [ ] Test calendar keyboard navigation
+- [ ] Test table/list keyboard navigation
 
 ---
 
@@ -665,11 +666,14 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 ### Core Functionality
 - [ ] User can log in with email/password
 - [ ] Admin can create people, vehicles, and equipment
-- [ ] Admin can edit and delete entities
+- [ ] Admin can edit and soft delete entities
+- [ ] Admin can undelete entities
+- [ ] Deleted entities show visual distinction
+- [ ] "Hide deleted" toggle works correctly
 - [ ] Admin can create bookings with multiple entity types
-- [ ] Conflict detection works correctly
-- [ ] Calendar displays bookings correctly in all views
-- [ ] Drag-and-drop rescheduling works (Admin)
+- [ ] Basic conflict detection works correctly
+- [ ] Bookings list displays all bookings correctly
+- [ ] Bookings can be searched, filtered, and sorted
 - [ ] Member users have read-only access
 
 ### Data Management
@@ -735,12 +739,12 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 | 5 | Week 3 | Dashboard |
 | 6 | Week 4-5 | Resource management |
 | 7 | Week 6-7 | Booking management |
-| 8 | Week 8-9 | Calendar views |
-| 9 | Week 10 | Settings & member view |
-| 10 | Week 11-12 | Integration & testing |
-| 11 | Week 12-13 | Polish & deployment |
+| 8 | Week 8 | Bookings list view (simplified) |
+| 9 | Week 9 | Settings & member view |
+| 10 | Week 10-11 | Integration & testing |
+| 11 | Week 11-12 | Polish & deployment |
 
-**Total Estimated Time:** 12-13 weeks
+**Total Estimated Time:** 11-12 weeks (reduced from 12-13 weeks due to simplified MVP scope)
 
 ---
 
@@ -752,8 +756,22 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 - Regular testing should be done throughout, not just in Phase 10
 - Consider using a task management tool (Jira, Trello, GitHub Projects) to track progress
 
+## Simplifications for MVP
+
+This implementation plan reflects a simplified MVP scope compared to the original PRD:
+
+1. **No drag-and-drop rescheduling** - Bookings are rescheduled by editing time fields in the form
+2. **No resource availability management** - Availability tracking removed for initial launch
+3. **No recurring bookings** - Each booking is a single instance
+4. **Bookings list instead of calendar** - Table/list view instead of visual calendar (calendar planned for future)
+5. **Basic conflict detection** - Simple time overlap checking; detailed resolution planned for later
+6. **Soft delete pattern** - All entities use `is_deleted` flag with undelete capability
+
+These simplifications reduce development time from 12-13 weeks to 11-12 weeks while establishing core functionality that can be enhanced in future iterations.
+
 ---
 
-*Plan Version: 1.0*
+*Plan Version: 2.0 (Simplified MVP)*
 *Created: January 2026*
-*Based on: PRD-frontend.md v2.0*
+*Updated: January 2026*
+*Based on: PRD-frontend.md v3.0*

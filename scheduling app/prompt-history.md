@@ -450,3 +450,109 @@ After asking clarification questions via AskUserQuestion (user prioritized clari
 **All legacy references to removed features have been successfully cleaned up.**
 
 ---
+
+### Prompt 26
+
+**User (exact words):**
+> Since we modified the frontend prd regarding
+> 1. Simplified Conflict Detection
+> 2. Removed Drag-and-Drop,  Availability & Recurring
+> 3. Replaced Calendar with Bookings Table
+> 4. Soft Delete Implementation
+> Can you also update frontend-implementation-plan.md accordingly?
+
+**Response:** Updated `docs/frontend-implementation-plan.md` (v2.0 - Simplified MVP) to align with PRD changes:
+
+1. **Updated Project Structure:**
+   - Replaced `Calendar/` component folder with `BookingsList/`
+   - Updated router routes to use `/bookings` instead of `/calendar`
+
+2. **Updated Backbone Models & Collections:**
+   - Added `is_deleted` field to all models (Person, Vehicle, Equipment, Booking)
+   - Added `active()` and `deleted()` filter methods to all collections
+   - Removed `availability` fields from entity models
+   - Removed `recurrence_rule` field from Booking model
+
+3. **Updated Resource Management (Phase 6):**
+   - Removed availability schedule fields from all forms
+   - Removed maintenance dates from equipment form
+   - Changed "Active/inactive filter" to "Hide deleted toggle"
+   - Added visual distinction for deleted items (grayed out, strikethrough)
+   - Added undelete button functionality
+   - Changed from hard delete to soft delete operations
+
+4. **Updated Booking Management (Phase 7):**
+   - Removed `RecurrenceSelector.jsx` component entirely
+   - Simplified conflict detection to basic time overlap checking
+   - Added note: "Detailed conflict resolution behavior will be defined after basic features are established"
+   - Added soft delete and undelete functionality for bookings
+
+5. **Replaced Calendar Views with Bookings List (Phase 8):**
+   - **Removed:** CalendarView, DayView, WeekView, MonthView, BookingBlock components
+   - **Removed:** Drag-and-drop implementation (entire section 8.2)
+   - **Removed:** CalendarPage view
+   - **Added:** BookingsList, BookingRow, BookingFilters, BookingDetailsModal components
+   - **Added:** BookingsPage view with search, filter, sort functionality
+   - Added note: "Calendar view with drag-and-drop rescheduling is planned for future enhancement"
+
+6. **Updated Settings & Member View (Phase 9):**
+   - Removed availability settings from SettingsPage
+   - Changed "Read-only calendar" to "Read-only bookings list"
+
+7. **Updated Testing (Phase 10):**
+   - Removed calendar view navigation tests
+   - Removed drag-and-drop tests
+   - Removed recurrence tests
+   - Added soft delete/undelete tests for all entities
+   - Added "Hide deleted" toggle tests
+   - Updated conflict detection tests to verify basic warnings only
+   - Added bookings list view tests (search, filter, sort)
+
+8. **Updated Verification Checklist:**
+   - Removed calendar-specific verifications
+   - Removed drag-and-drop verification
+   - Added soft delete/undelete verifications
+   - Added "Hide deleted" toggle verification
+   - Changed "Conflict detection works correctly" to "Basic conflict detection works correctly"
+
+9. **Updated Timeline:**
+   - Reduced Phase 8 from 2 weeks to 1 week (simplified bookings list vs complex calendar)
+   - Adjusted subsequent phases accordingly
+   - **Total time reduced from 12-13 weeks to 11-12 weeks**
+
+10. **Added "Simplifications for MVP" Section:**
+    - Documented all simplifications made for MVP
+    - Listed features planned for future iterations
+
+**Version updated:** v1.0 → v2.0 (Simplified MVP)
+**Based on:** PRD-frontend.md v3.0
+
+---
+
+### Prompt 27
+
+**User (exact words):**
+> i noticed that the two filters active() and deleted() seem to be repeating the same code. One of them is enough so just keep deleted(). In terms of word choice, let's not mix active and deleted together. at this stage, we don't need to consider if any entity is active or inactive as I don't have enough info on that part of the business logic. please update both the forntend prd and the implementation plan.
+
+**Response:** Updated both `docs/prd/PRD-frontend.md` and `docs/frontend-implementation-plan.md` to remove redundant `active()` filter:
+
+1. **Frontend PRD (`PRD-frontend.md`):**
+   - Removed `active()` method from People collection
+   - Removed `active()` method from Vehicles collection
+   - Removed `active()` method from EquipmentCollection
+   - Removed `active()` method from Bookings collection
+   - Kept only `deleted()` filter in all collections
+   - Changed "only active resources can be assigned" to "only non-deleted resources can be assigned"
+
+2. **Frontend Implementation Plan (`frontend-implementation-plan.md`):**
+   - Updated Phase 2.2 (Backbone Collections) task descriptions
+   - Removed references to `active()` filter from all collection creation tasks
+   - Changed "with `active()` and `deleted()` filters" to "with `deleted()` filter"
+
+**Rationale:**
+- The `active()` filter was redundant - it just inverted the logic of `deleted()`
+- Avoided mixing "active/inactive" terminology with "deleted" status
+- At this MVP stage, there's no need for separate active/inactive status tracking
+- Entities are either deleted (`is_deleted = 1`) or not deleted (`is_deleted = 0`)
+
+---

@@ -14,12 +14,11 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 **Key Capabilities:**
 - **Unified Resource Management** - Manage people (with skills/certifications), vehicles (with capacity/maintenance), and equipment (with condition tracking) from a single platform
-- **Visual Scheduling** - Drag-and-drop booking creation with real-time conflict detection across all resource types
-- **Multi-Resource Bookings** - Assign multiple people, vehicles, and equipment to a single booking/job
-- **Conflict Prevention** - Automatic detection and warnings when attempting to double-book any resource
+- **Multi-Resource Bookings** - Assign multiple people, vehicles, and equipment to a single booking/job using a transfer-list interface
+- **Conflict Detection** - Warnings when attempting to double-book any resource
 - **Role-Based Access** - Admin users manage the system; Member users view their assigned bookings
 - **Real-Time Sync** - All users see updates immediately when bookings are created, modified, or deleted
-- **Recurring Bookings** - Support for daily, weekly, and monthly recurring assignments
+- **Soft Delete with Undelete** - Deleted items remain visible and can be restored by clicking "Undelete"
 - **Mobile Access** - Responsive design for field teams to view schedules on mobile devices
 
 **Target Industries:** Construction, logistics, field services, healthcare, manufacturing, and rental companies with 50-500 employees that need to coordinate multiple resource types simultaneously.
@@ -53,13 +52,13 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 - ❌ Last-minute scrambling when conflicts are discovered
 
 **After SchedulePro:**
-- ✅ Single calendar view showing all resource types together
-- ✅ Instant conflict detection when creating bookings
-- ✅ Real-time availability visibility for all resources
-- ✅ Drag-and-drop assignment with automatic validation
+- ✅ Single view showing all resource types together
+- ✅ Conflict detection when creating bookings
+- ✅ Clear visibility into resource assignments
+- ✅ Easy assignment with transfer-list interface
 - ✅ Complete job view showing all assigned people, vehicles, and equipment
-- ✅ Data-driven utilization insights
-- ✅ Proactive conflict prevention
+- ✅ Organized booking management
+- ✅ Reduced double-bookings
 
 ---
 
@@ -70,43 +69,39 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 **As an Admin, I want to:**
 
 1. **Manage Resource Inventory**
-   - Add new people to the system with their skills, certifications, and availability
-   - Add vehicles with license plates, capacity, and maintenance schedules
-   - Add equipment with serial numbers, condition status, and maintenance dates
+   - Add new people to the system with their skills and certifications
+   - Add vehicles with license plates and capacity
+   - Add equipment with serial numbers and condition status
    - Edit resource details when information changes
-   - Mark resources as inactive when they're no longer available (without deleting history)
+   - Delete resources with ability to undo before permanent removal
    - Search and filter resources by type, status, or name
 
 2. **Create and Manage Bookings**
-   - Create a booking by selecting date/time and assigning resources
+   - Create a booking by selecting date/time and assigning resources using transfer-list interface
    - Assign multiple people, vehicles, and equipment to a single booking
-   - See instant warnings if any resource is already booked during that time
+   - See warnings if any resource is already booked during that time
    - Add booking details: title, location, notes
-   - Create recurring bookings (daily, weekly, monthly)
    - Edit existing bookings to change time or assigned resources
-   - Delete bookings when jobs are cancelled
+   - Delete bookings with ability to undo before permanent removal
 
-3. **View and Analyze Schedules**
-   - View calendar in Day, Week, or Month views
-   - Filter calendar by resource type (show only people, only vehicles, etc.)
-   - See color-coded booking blocks for easy visual scanning
-   - Drag-and-drop bookings to reschedule
-   - View dashboard with key metrics (utilization, conflicts, today's bookings)
-   - See which resources are most/least utilized
+3. **View Bookings**
+   - View all bookings in a table/list format
+   - Filter bookings by date range, resource, or status
+   - Sort bookings by date, title, or created time
+   - See booking details at a glance
+   - View dashboard with key metrics (total bookings, today's bookings)
 
-4. **Prevent Conflicts**
-   - Get automatic warnings when attempting to double-book a resource
-   - See which bookings conflict when creating a new booking
-   - View conflicts on the calendar with visual indicators
-   - Resolve conflicts by reassigning resources or changing times
+4. **Handle Conflicts**
+   - Get warnings when attempting to double-book a resource
+   - Review conflicts before saving a booking
 
 ### 2.2 Member User Stories
 
 **As a Member, I want to:**
 
 1. **View My Schedule**
-   - See all bookings I'm assigned to on a calendar
-   - View my schedule for today, this week, or this month
+   - See all bookings I'm assigned to in a list
+   - View my schedule for today, this week, or upcoming dates
    - Access my schedule from my mobile phone while in the field
    - See details of each booking: time, location, notes, other assigned resources
 
@@ -115,15 +110,11 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
    - See if I'm working with other team members on a job
    - View upcoming bookings to plan my day/week
 
-3. **Manage Availability (Optional)**
-   - Update my working hours if I'm linked to a person resource
-   - Mark days I'm unavailable (vacation, sick leave)
-
 ### 2.3 Key User Workflows
 
 #### Workflow 1: Create a New Booking (Admin)
 
-1. Admin navigates to Calendar or Dashboard
+1. Admin navigates to Bookings page or Dashboard
 2. Clicks "Create Booking" button
 3. Booking form modal opens
 4. Admin enters:
@@ -140,38 +131,19 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 9. Switches to "Equipment" tab
 10. Clicks to assign "Excavator #1"
 11. System checks for conflicts automatically
-12. No conflicts found → "Save Booking" button is enabled
+12. If conflicts exist, warning is displayed
 13. Admin clicks "Save Booking"
 14. Success message appears
-15. Calendar updates with new booking block
+15. Bookings list updates with new booking
 16. All users see the new booking immediately
 
-**Conflict Scenario:**
-- At step 11, if "John Smith" is already booked 10:00 AM - 2:00 PM
-- System displays warning: "⚠️ Conflict: John Smith is already booked for 'Equipment Maintenance' from 10:00 AM - 2:00 PM"
-- Admin can either:
-  - Remove John and assign someone else
-  - Change the booking time to avoid conflict
-  - Override conflict with confirmation (if permitted)
-
-#### Workflow 2: Reschedule a Booking (Admin - Drag and Drop)
-
-1. Admin views Week calendar
-2. Sees booking "Site Visit" on Monday 9:00 AM
-3. Drags the booking block to Tuesday 2:00 PM
-4. System validates the new time for all assigned resources
-5. If no conflicts: Confirmation modal appears "Reschedule this booking to Tuesday 2:00 PM?"
-6. Admin clicks "Confirm"
-7. Booking updates to new time
-8. All assigned members see updated schedule
-
-#### Workflow 3: View Schedule (Member)
+#### Workflow 2: View Schedule (Member)
 
 1. Member logs in
 2. Dashboard shows today's bookings assigned to them
-3. Member clicks "Calendar" in sidebar
-4. Week view shows all their bookings for the week
-5. Member clicks on a booking block
+3. Member clicks "My Bookings" in sidebar
+4. List view shows all their bookings
+5. Member clicks on a booking row
 6. Modal shows booking details:
    - Title: "Site Visit - 123 Oak Street"
    - Location: "123 Oak Street, Springfield"
@@ -181,16 +153,14 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
    - Assigned vehicles: Ford F-150 #2
    - Assigned equipment: Excavator #1
 7. Member closes modal
-8. Member switches to Day view to see today's schedule in detail
 
-#### Workflow 4: Manage Resources (Admin)
+#### Workflow 3: Manage Resources (Admin)
 
 1. Admin navigates to Resources page
 2. Sees three tabs: People | Vehicles | Equipment
 3. Clicks "People" tab (default)
 4. Sees list of all people with:
    - Name, email, skills, certifications
-   - Active/Inactive status
    - Edit and Delete buttons
 5. Clicks "+ Add Person" button
 6. Form modal opens
@@ -201,7 +171,6 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
    - Skills: "Plumbing, HVAC"
    - Certifications: "Journeyman Plumber, OSHA 30"
    - Hourly Rate: $45.00
-   - Availability: Monday-Friday 8:00 AM - 5:00 PM
 8. Clicks "Save"
 9. Sarah Chen appears in the people list
 10. Sarah is now available for assignment to bookings
@@ -214,125 +183,94 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 **Creating Resources:**
 - Form validation occurs in real-time (name required before save)
-- Duplicate detection warns if similar name exists (optional)
-- Default availability is set to Monday-Friday 9:00 AM - 5:00 PM
-- New resources are automatically set to "Active" status
 - Changes are saved immediately to the backend
 - Success notification appears after save
 - Resource immediately appears in assignment lists
 
 **Editing Resources:**
 - Editing opens a pre-filled form modal
-- Changes to availability affect future bookings only (existing bookings unchanged)
 - Validation prevents saving invalid data (e.g., empty name)
 - "Cancel" button discards changes
 - Changes sync in real-time to other logged-in users
 
-**Deleting Resources:**
-- Confirmation modal appears: "Are you sure you want to delete [Resource Name]? This action cannot be undone."
-- If resource has future bookings, additional warning: "This resource is assigned to X upcoming bookings. Delete anyway?"
-- Deleting removes resource from all future bookings
-- Historical bookings retain the resource name for record-keeping
-- Delete is immediate and cannot be undone
-
-**Deactivating vs. Deleting:**
-- Prefer "Mark as Inactive" over deletion to preserve history
-- Inactive resources don't appear in assignment panels
-- Inactive resources still show in historical bookings
-- Can be reactivated later without losing data
+**Deleting Resources (Soft Delete):**
+- Confirmation modal appears: "Are you sure you want to delete [Resource Name]?"
+- Clicking "Delete" sets `is_deleted = 1` and persists to database via API
+- Deleted resources are visually distinguished in lists (e.g., grayed out, strikethrough)
+- Deleted resources don't appear in assignment panels (only non-deleted resources can be assigned)
+- "Undelete" button appears for deleted resources
+- Clicking "Undelete" sets `is_deleted = 0` and restores the resource immediately
+- Deleted resources can be filtered out of view with a "Hide deleted" toggle
 
 ### 3.2 Booking Management Behavior
 
 **Creating Bookings:**
 - At least one resource (person, vehicle, OR equipment) must be assigned
 - Start time must be before end time (validated on form)
-- Conflict detection runs automatically as resources are added
-- Conflict warnings appear immediately below resource assignment panel
-- Warnings show: Which resource conflicts, with which booking, at what time
-- User can proceed despite warnings (with confirmation) or fix conflicts first
+- Conflict detection runs when saving
+- If conflicts exist, a warning is displayed
 - Successful save shows notification: "Booking created successfully"
-- Calendar immediately updates with new booking block
+- Bookings list immediately updates with new booking
 
 **Editing Bookings:**
-- Click booking block on calendar OR click from list view
+- Click booking row from list view
 - Form opens pre-filled with current data
 - Can change any field: time, resources, location, notes
-- Re-validates conflicts when time or resources change
 - "Save" updates booking, "Cancel" discards changes
 - All users see updates in real-time
 
-**Deleting Bookings:**
+**Deleting Bookings (Soft Delete):**
 - Confirmation required: "Delete this booking?"
-- For recurring bookings: "Delete only this occurrence or all future occurrences?"
-- Deletion removes booking from calendar immediately
-- Deleted bookings cannot be recovered
+- Clicking "Delete" sets `is_deleted = 1` and persists to database via API
+- Deleted bookings are visually distinguished in lists (e.g., grayed out, strikethrough)
+- "Undelete" button appears for deleted bookings
+- Clicking "Undelete" sets `is_deleted = 0` and restores the booking immediately
+- Deleted bookings can be filtered out of view with a "Hide deleted" toggle
 
-**Recurring Bookings:**
-- Options: None, Daily, Weekly, Monthly
-- Creates individual booking instances (not a single linked series)
-- Each instance can be edited/deleted independently
-- Default: Creates 3 months of future occurrences
-- Each instance shows in calendar as separate block
+**Conflict Detection:**
+- Basic detection checks if the same resource is assigned to overlapping time slots
+- Detailed conflict resolution behavior will be defined after basic features are implemented
 
-**Conflict Detection Logic:**
-- Conflict exists if: Same resource + overlapping time
-- Overlap means: New booking starts before existing ends AND new booking ends after existing starts
-- Checked across ALL resource types (people, vehicles, equipment)
-- Example conflict:
-  - Existing: John Smith, Monday 10:00 AM - 2:00 PM
-  - New attempt: John Smith, Monday 11:00 AM - 3:00 PM
-  - Result: ⚠️ Conflict detected (1 hour overlap from 11 AM - 2 PM)
+### 3.3 Bookings List Behavior
 
-### 3.3 Calendar Behavior
-
-**View Modes:**
-- **Day View:** 24-hour timeline, one day, shows all bookings for that day
-- **Week View:** 7-day grid, Monday-Sunday, shows week at a glance
-- **Month View:** Calendar grid, shows all bookings in a month (condensed view)
-
-**Navigation:**
-- Previous/Next buttons move by view period (day, week, or month)
-- "Today" button jumps to current date
-- Date picker allows jumping to specific date
-
-**Booking Blocks:**
-- Height represents duration
-- Color-coded by resource type or booking status
-- Shows: Booking title + time
-- Hover shows tooltip with full details
-- Click opens booking detail modal
+**Table View:**
+- Displays all bookings in a sortable table
+- Columns: Date/Time, Title, Location, Assigned Resources, Actions
+- Default sort: Upcoming bookings first (by start time)
+- Click column header to change sort order
+- Pagination: 50 bookings per page
+- Deleted bookings shown with visual distinction (grayed out, strikethrough)
 
 **Filtering:**
-- Checkboxes: [✓] People [✓] Vehicles [✓] Equipment
-- Unchecking a type hides those bookings from calendar
-- Filters persist during session
-- Reset button clears all filters
+- Date range picker: Filter by start/end dates
+- Resource filter: Show bookings with specific people, vehicles, or equipment
+- Search: Filter by title or location
+- "Hide deleted" toggle: Filter out deleted bookings from view
+- "Clear Filters" button resets all filters
 
-**Drag-and-Drop (Admin Only):**
-- Dragging a booking shows ghost element
-- Drop zones are valid time slots
-- Validates conflicts before allowing drop
-- Confirmation modal appears before committing change
-- Invalid drops (conflict or outside working hours) are rejected with warning
+**Row Actions:**
+- Click row to view booking details in modal
+- "Edit" button (Admin only) opens edit form
+- "Delete" button (Admin only) soft deletes booking (sets `is_deleted = 1`)
+- "Undelete" button (Admin only, shown for deleted bookings) restores booking (sets `is_deleted = 0`)
+
+**Empty States:**
+- No bookings: "No bookings found. Create your first booking to get started."
+- No results after filtering: "No bookings match your filters. Try adjusting your search."
 
 ### 3.4 Dashboard Behavior
 
 **Stats Cards:**
-- **Total Resources:** Count of active people + vehicles + equipment
-- **Scheduled Today:** Count of bookings with today's date
-- **Utilization Rate:** Percentage of resources with ≥1 booking today
-- **Conflicts:** Count of detected conflicts in next 7 days
+- **Total Resources:** Count of people + vehicles + equipment
+- **Total Bookings:** Count of all bookings
+- **Today's Bookings:** Count of bookings with today's date
+- **Upcoming Bookings:** Count of bookings in next 7 days
 
 **Today's Bookings:**
 - Lists bookings with start time today
 - Sorted by start time (earliest first)
 - Shows: Time, title, assigned resources (icons)
 - Click to view details
-
-**Recent Activity:**
-- Last 10 booking changes (created, edited, deleted)
-- Shows: "Created 'Site Visit'" - 5 minutes ago
-- Real-time updates when changes occur
 
 **Quick Actions:**
 - "Add Resource" button opens resource creation modal
@@ -361,38 +299,28 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 ### 3.6 Real-Time Sync Behavior
 
 **When User A creates/edits/deletes a booking:**
-- User B's calendar updates within 1-2 seconds
+- User B's bookings list updates within 1-2 seconds
 - User B's dashboard stats recalculate
 - No page refresh required
-- Notification appears (optional): "Calendar updated"
 
 **When User A edits a resource:**
 - User B's resource list updates
 - If resource is currently displayed in a booking, details update
 - Assignment panels refresh to show new data
 
-**Conflict Resolution:**
-- If two users create conflicting bookings simultaneously:
-- Both succeed initially
-- Backend detects conflict on save
-- Later user sees warning: "Conflict detected after save. Please review."
-- Option to keep or modify booking
-
 ### 3.7 Mobile Behavior
 
 **Responsive Design:**
 - Navigation sidebar collapses to hamburger menu
-- Calendar switches to list view on small screens (< 768px)
-- Booking blocks stack vertically
+- Tables adapt to card layout on small screens (< 768px)
 - Touch-optimized buttons (minimum 44px tap targets)
 - Forms adapt to single-column layout
 - Modals take full screen on mobile
 
 **Mobile Interactions:**
-- Tap booking to view details
-- Swipe left/right to navigate days (Day view)
+- Tap booking row to view details
 - Pull to refresh updates data
-- Drag-and-drop disabled on mobile (use edit form instead)
+- Swipe actions for quick edit/delete (optional enhancement)
 
 ### 3.8 Error Handling Behavior
 
@@ -412,10 +340,10 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 - 404 errors show: "Resource not found."
 - 403 errors show: "You don't have permission to perform this action."
 
-**Conflict Errors:**
-- Shown as warnings, not blocking errors
-- User can choose to proceed or fix
-- Visual indicator (yellow warning icon) instead of red error
+**Conflict Warnings:**
+- Shown as warnings when detected
+- Visual indicator (yellow warning icon)
+- Specific behavior to be defined in later phases
 
 ---
 
@@ -428,13 +356,11 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 ### 4.2 Efficiency Metrics
 - Time to create a booking: < 60 seconds
-- Time to find resource availability: < 10 seconds
-- Conflict detection accuracy: 100%
-- Reduction in double-bookings: 95%+ compared to previous system
+- Reduction in double-bookings compared to previous system
 
 ### 4.3 Performance Metrics
 - Initial page load: < 3 seconds
-- Calendar render time: < 1 second for 100 bookings
+- Bookings list render time: < 1 second for 100 bookings
 - Real-time sync latency: < 2 seconds
 - Mobile responsiveness: 100% on devices 320px+ width
 
@@ -465,19 +391,17 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 schpro-frontend/
 ├── src/
 │   ├── components/          # React components
-│   │   ├── Calendar/
-│   │   │   ├── CalendarView.jsx
-│   │   │   ├── DayView.jsx
-│   │   │   ├── WeekView.jsx
-│   │   │   ├── MonthView.jsx
-│   │   │   └── BookingBlock.jsx
+│   │   ├── BookingsList/
+│   │   │   ├── BookingsList.jsx
+│   │   │   ├── BookingRow.jsx
+│   │   │   ├── BookingFilters.jsx
+│   │   │   └── BookingDetailsModal.jsx
 │   │   ├── ResourceList/
 │   │   │   ├── ResourceList.jsx
 │   │   │   ├── ResourceItem.jsx
 │   │   │   └── ResourceFilters.jsx
 │   │   ├── BookingForm/
-│   │   │   ├── BookingForm.jsx
-│   │   │   └── RecurrenceSelector.jsx
+│   │   │   └── BookingForm.jsx
 │   │   ├── ResourceAssignment/
 │   │   │   ├── ResourceAssignmentPanel.jsx
 │   │   │   ├── ResourceTabs.jsx
@@ -487,8 +411,7 @@ schpro-frontend/
 │   │   │   └── AssignedResourceChip.jsx
 │   │   ├── Dashboard/
 │   │   │   ├── Dashboard.jsx
-│   │   │   ├── StatsCard.jsx
-│   │   │   └── RecentActivity.jsx
+│   │   │   └── StatsCard.jsx
 │   │   ├── Auth/
 │   │   │   ├── LoginForm.jsx
 │   │   │   └── ProtectedRoute.jsx
@@ -522,7 +445,7 @@ schpro-frontend/
 │   │   └── backboneSync.js
 │   ├── views/               # Page-level components
 │   │   ├── DashboardPage.jsx
-│   │   ├── CalendarPage.jsx
+│   │   ├── BookingsPage.jsx
 │   │   ├── ResourcesPage.jsx
 │   │   ├── SettingsPage.jsx
 │   │   └── LoginPage.jsx
@@ -580,51 +503,49 @@ const User = Backbone.Model.extend({
 - Overview of today's bookings
 - Quick stats cards:
   - Total resources
-  - Scheduled today
-  - Utilization rate
-  - Conflicts detected
-- Recent activity feed (last 10 booking changes)
+  - Total bookings
+  - Today's bookings
+  - Upcoming bookings (next 7 days)
 - Quick actions: "Add Resource", "Create Booking"
 
 **UI Components:**
 - `StatsCard` - Display single metric with icon
-- `RecentActivity` - List of recent booking events
 - `TodayBookings` - Summary list of today's assignments
 
 ---
 
-### 4.3 Calendar View
+### 4.3 Bookings List View
 
 **Requirements:**
-- Day / Week / Month view toggle
-- Filter by resource type (people, vehicles, equipment)
-- Color-coded booking blocks by resource or job type
-- Drag-and-drop to reschedule (Admin only)
-- Click to view/edit booking details
-- Visual indicator for conflicts
+- Table/list display of all bookings
+- Sortable columns (date, title, location)
+- Filter by date range, resource, search term
+- Pagination (50 items per page)
+- Click row to view booking details
+- Edit/Delete actions (Admin only)
 
-**Calendar Component Props:**
+**BookingsListView Component Props:**
 ```typescript
-interface CalendarViewProps {
-    view: 'day' | 'week' | 'month';
-    date: Date;
+interface BookingsListViewProps {
     bookings: Backbone.Collection;
-    resources: Backbone.Collection;
     filters: {
-        resourceTypes: string[];
+        dateRange: { start: Date; end: Date };
         resourceIds: number[];
+        searchTerm: string;
     };
+    sortBy: 'date' | 'title' | 'location';
+    sortOrder: 'asc' | 'desc';
     onBookingClick: (booking: Booking) => void;
-    onBookingDrop: (bookingId: number, newStart: Date, newEnd: Date) => void;
-    onDateChange: (date: Date) => void;
+    onFilterChange: (filters: object) => void;
+    onSortChange: (sortBy: string, sortOrder: string) => void;
 }
 ```
 
-**Drag & Drop:**
-- Use native HTML5 drag-and-drop or library (react-dnd)
-- Show ghost element while dragging
-- Validate drop target (check for conflicts)
-- Confirm reschedule via modal
+**UI Components:**
+- `BookingsList` - Main table/list container
+- `BookingRow` - Individual booking row
+- `BookingFilters` - Filter controls panel
+- `BookingDetailsModal` - View/edit booking details
 
 ---
 
@@ -633,10 +554,11 @@ interface CalendarViewProps {
 **Requirements:**
 - Tabbed view with People, Vehicles, Equipment tabs
 - List view with search and filters for each entity type
-- CRUD operations for each entity type
+- CRUD operations for each entity type with soft delete
 - Type-specific fields and validation
-- Availability settings (working hours, days off)
-- Active/inactive toggle
+- "Hide deleted" toggle to filter out deleted resources from view
+- Deleted resources shown with visual distinction (grayed out, strikethrough)
+- "Undelete" button to restore deleted resources (sets `is_deleted = 0`)
 
 **Person Model:**
 ```javascript
@@ -650,16 +572,7 @@ const Person = Backbone.Model.extend({
         skills: [],
         certifications: [],
         hourly_rate: null,
-        is_active: true,
-        availability: {
-            monday: { start: '09:00', end: '17:00' },
-            tuesday: { start: '09:00', end: '17:00' },
-            wednesday: { start: '09:00', end: '17:00' },
-            thursday: { start: '09:00', end: '17:00' },
-            friday: { start: '09:00', end: '17:00' },
-            saturday: null,
-            sunday: null
-        }
+        is_deleted: false
     },
     validate(attrs) {
         if (!attrs.name || attrs.name.trim() === '') {
@@ -682,16 +595,7 @@ const Vehicle = Backbone.Model.extend({
         license_plate: '',
         vin: '',
         capacity: '',
-        is_active: true,
-        availability: {
-            monday: { start: '06:00', end: '20:00' },
-            tuesday: { start: '06:00', end: '20:00' },
-            wednesday: { start: '06:00', end: '20:00' },
-            thursday: { start: '06:00', end: '20:00' },
-            friday: { start: '06:00', end: '20:00' },
-            saturday: null,
-            sunday: null
-        }
+        is_deleted: false
     },
     validate(attrs) {
         if (!attrs.name || attrs.name.trim() === '') {
@@ -712,18 +616,7 @@ const Equipment = Backbone.Model.extend({
         manufacturer: '',
         model: '',
         condition: 'good', // 'excellent' | 'good' | 'fair' | 'poor'
-        last_maintenance: null,
-        next_maintenance: null,
-        is_active: true,
-        availability: {
-            monday: { start: '06:00', end: '20:00' },
-            tuesday: { start: '06:00', end: '20:00' },
-            wednesday: { start: '06:00', end: '20:00' },
-            thursday: { start: '06:00', end: '20:00' },
-            friday: { start: '06:00', end: '20:00' },
-            saturday: null,
-            sunday: null
-        }
+        is_deleted: false
     },
     validate(attrs) {
         if (!attrs.name || attrs.name.trim() === '') {
@@ -739,8 +632,8 @@ const People = Backbone.Collection.extend({
     model: Person,
     url: '/api/people',
 
-    active() {
-        return this.where({ is_active: true });
+    deleted() {
+        return this.filter(person => person.get('is_deleted'));
     }
 });
 
@@ -748,8 +641,8 @@ const Vehicles = Backbone.Collection.extend({
     model: Vehicle,
     url: '/api/vehicles',
 
-    active() {
-        return this.where({ is_active: true });
+    deleted() {
+        return this.filter(vehicle => vehicle.get('is_deleted'));
     }
 });
 
@@ -757,8 +650,8 @@ const EquipmentCollection = Backbone.Collection.extend({
     model: Equipment,
     url: '/api/equipment',
 
-    active() {
-        return this.where({ is_active: true });
+    deleted() {
+        return this.filter(equip => equip.get('is_deleted'));
     }
 });
 ```
@@ -768,12 +661,11 @@ const EquipmentCollection = Backbone.Collection.extend({
 ### 4.5 Booking Management
 
 **Requirements:**
-- Create/edit/delete bookings (Admin only)
-- Assign people, vehicles, and equipment to time slot
+- Create/edit/delete bookings with soft delete (Admin only)
+- Assign people, vehicles, and equipment to time slot using transfer-list interface
 - Required fields: at least one entity, start time, end time, title
-- Optional: location, notes, recurrence rule
-- Conflict detection with warning before save (checks all entity types)
-- Recurring bookings (daily, weekly, monthly)
+- Optional: location, notes
+- Basic conflict detection with warning before save
 
 **Booking Model:**
 ```javascript
@@ -789,7 +681,7 @@ const Booking = Backbone.Model.extend({
         start_time: null,
         end_time: null,
         notes: '',
-        recurrence_rule: null, // null | 'daily' | 'weekly' | 'monthly'
+        is_deleted: false,
         // Populated by server on fetch
         people: [],
         vehicles: [],
@@ -828,56 +720,40 @@ const Bookings = Backbone.Collection.extend({
     model: Booking,
     url: '/api/bookings',
 
-    forPerson(personId) {
+    deleted() {
+        return this.filter(booking => booking.get('is_deleted'));
+    },
+
+    forPerson(personId, includeDeleted = false) {
         return this.filter(booking => {
+            if (!includeDeleted && booking.get('is_deleted')) return false;
             const personIds = booking.get('person_ids') || [];
             return personIds.includes(personId);
         });
     },
 
-    forVehicle(vehicleId) {
+    forVehicle(vehicleId, includeDeleted = false) {
         return this.filter(booking => {
+            if (!includeDeleted && booking.get('is_deleted')) return false;
             const vehicleIds = booking.get('vehicle_ids') || [];
             return vehicleIds.includes(vehicleId);
         });
     },
 
-    forEquipment(equipmentId) {
+    forEquipment(equipmentId, includeDeleted = false) {
         return this.filter(booking => {
+            if (!includeDeleted && booking.get('is_deleted')) return false;
             const equipmentIds = booking.get('equipment_ids') || [];
             return equipmentIds.includes(equipmentId);
         });
     },
 
-    inDateRange(start, end) {
+    inDateRange(start, end, includeDeleted = false) {
         return this.filter(booking => {
+            if (!includeDeleted && booking.get('is_deleted')) return false;
             const bookingStart = new Date(booking.get('start_time'));
             const bookingEnd = new Date(booking.get('end_time'));
             return bookingStart < end && bookingEnd > start;
-        });
-    },
-
-    findConflicts(personIds, vehicleIds, equipmentIds, start, end, excludeId = null) {
-        return this.filter(booking => {
-            if (booking.id === excludeId) return false;
-
-            // Check if any entity overlaps
-            const bookingPersonIds = booking.get('person_ids') || [];
-            const bookingVehicleIds = booking.get('vehicle_ids') || [];
-            const bookingEquipmentIds = booking.get('equipment_ids') || [];
-
-            const hasOverlappingPerson = personIds.some(id => bookingPersonIds.includes(id));
-            const hasOverlappingVehicle = vehicleIds.some(id => bookingVehicleIds.includes(id));
-            const hasOverlappingEquipment = equipmentIds.some(id => bookingEquipmentIds.includes(id));
-
-            if (!hasOverlappingPerson && !hasOverlappingVehicle && !hasOverlappingEquipment) {
-                return false;
-            }
-
-            // Check time overlap
-            const bookingStart = new Date(booking.get('start_time'));
-            const bookingEnd = new Date(booking.get('end_time'));
-            return bookingStart < new Date(end) && bookingEnd > new Date(start);
         });
     }
 });
@@ -1005,8 +881,7 @@ The BookingForm component uses ResourceAssignmentPanel with separate entity coll
 **Requirements:**
 - View assigned bookings only (or all, based on settings)
 - Cannot create/edit/delete bookings
-- Can update own availability (if linked to a resource)
-- Read-only calendar view
+- Read-only bookings list view
 - Filtered view of personal bookings
 
 ---
