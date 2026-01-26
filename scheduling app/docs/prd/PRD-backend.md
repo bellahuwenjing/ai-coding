@@ -53,7 +53,6 @@ schpro-backend/
 │   │   └── CompanyFilter.php
 │   ├── Models/
 │   │   ├── CompanyModel.php
-│   │   ├── UserModel.php
 │   │   ├── PersonModel.php
 │   │   ├── VehicleModel.php
 │   │   ├── EquipmentModel.php
@@ -121,66 +120,78 @@ CREATE TABLE companies (
 }
 ```
 
-### 4.2 users
-
-```sql
-CREATE TABLE users (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    company_id BIGINT UNSIGNED NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'member') DEFAULT 'member',
-    email_verified_at TIMESTAMP NULL,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-
-    UNIQUE INDEX idx_email (email),
-    INDEX idx_company_id (company_id),
-    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
-);
-```
-
-### 4.3 auth_tokens (for JWT/token auth)
+### 4.2 auth_tokens (for JWT/token auth)
 
 ```sql
 CREATE TABLE auth_tokens (
     id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT UNSIGNED NOT NULL,
+    person_id BIGINT UNSIGNED NOT NULL,
     token VARCHAR(64) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
     UNIQUE INDEX idx_token (token),
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    INDEX idx_person_id (person_id),
+    FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE
 );
 ```
 
-### 4.4 people
+### 4.3 people (Unified Authentication & Resource Table)
+
+**Purpose**: Unified table serving both authentication (login) and resource scheduling (job assignment). All people can log in; members are assignable to bookings, admins are hidden from resource panels.
 
 ```sql
 CREATE TABLE people (
+    -- Primary identification
     id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     company_id BIGINT UNSIGNED NOT NULL,
+
+    -- Core identity (required for all)
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    phone VARCHAR(50),
-    skills JSON,                    -- ["electrical", "plumbing"]
-    certifications JSON,            -- ["OSHA", "First Aid"]
-    hourly_rate DECIMAL(10,2),
+
+    -- Authentication fields (required - everyone can log in)
+    email VARCHAR(255) NOT NULL,            -- Required for login
+    password VARCHAR(255) NOT NULL,         -- Required for authentication
+
+    -- Role & Access Control
+    role ENUM('admin', 'member') DEFAULT 'member',
+
+    -- Resource scheduling fields
+    phone VARCHAR(50) NULL,
+    skills JSON NULL,                       -- ["electrical", "plumbing"]
+    certifications JSON NULL,               -- ["OSHA", "First Aid"]
+    hourly_rate DECIMAL(10,2) NULL,
+
+    -- Soft delete
     is_deleted TINYINT(1) DEFAULT 0,
+
+    -- Timestamps
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
 
+    -- Indexes
+    UNIQUE INDEX idx_email (email),
     INDEX idx_company_id (company_id),
+    INDEX idx_role (role),
     INDEX idx_is_deleted (is_deleted),
+
+    -- Foreign keys
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 );
 ```
 
-### 4.5 vehicles
+**Key Design Decisions:**
+
+- **Email REQUIRED**: All people must have email for login access
+- **Password REQUIRED**: All people can authenticate
+- **Two-tier role system**:
+  - `admin`: Full system access, **HIDDEN from resource assignment panels**
+  - `member`: Can log in, view bookings, **CAN be assigned to jobs**
+- **No email verification**: Removed `email_verified_at` field for MVP simplicity
+- **Retain resource fields**: All people can have skills, certifications, hourly_rate for reporting
+
+### 4.4 vehicles
 
 ```sql
 CREATE TABLE vehicles (
@@ -203,7 +214,7 @@ CREATE TABLE vehicles (
 );
 ```
 
-### 4.6 equipment
+### 4.5 equipment
 
 ```sql
 CREATE TABLE equipment (
@@ -224,7 +235,7 @@ CREATE TABLE equipment (
 );
 ```
 
-### 4.7 bookings
+### 4.6 bookings
 
 ```sql
 CREATE TABLE bookings (
@@ -245,11 +256,11 @@ CREATE TABLE bookings (
     INDEX idx_end_time (end_time),
     INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (created_by) REFERENCES people(id) ON DELETE CASCADE
 );
 ```
 
-### 4.8 booking_people (Junction Table)
+### 4.7 booking_people (Junction Table)
 
 ```sql
 CREATE TABLE booking_people (
@@ -264,7 +275,7 @@ CREATE TABLE booking_people (
 );
 ```
 
-### 4.9 booking_vehicles (Junction Table)
+### 4.8 booking_vehicles (Junction Table)
 
 ```sql
 CREATE TABLE booking_vehicles (
@@ -279,7 +290,7 @@ CREATE TABLE booking_vehicles (
 );
 ```
 
-### 4.10 booking_equipment (Junction Table)
+### 4.9 booking_equipment (Junction Table)
 
 ```sql
 CREATE TABLE booking_equipment (
@@ -294,7 +305,7 @@ CREATE TABLE booking_equipment (
 );
 ```
 
-### 4.11 Database Migrations (CI4 Format)
+### 4.10 Database Migrations (CI4 Format)
 
 ```php
 <?php
@@ -350,73 +361,7 @@ class CreateCompaniesTable extends Migration
 
 ```php
 <?php
-// app/Database/Migrations/2026-01-01-000002_CreateUsersTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateUsersTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            'company_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'email' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'password' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'name' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'role' => [
-                'type' => 'ENUM',
-                'constraint' => ['admin', 'member'],
-                'default' => 'member',
-            ],
-            'email_verified_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-            'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey('id');
-        $this->forge->addUniqueKey('email', 'idx_email');
-        $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('users');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('users');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000003_CreatePeopleTable.php
+// app/Database/Migrations/2026-01-01-000002_CreatePeopleTable.php
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -442,7 +387,17 @@ class CreatePeopleTable extends Migration
             'email' => [
                 'type' => 'VARCHAR',
                 'constraint' => 255,
-                'null' => true,
+                // Required for authentication
+            ],
+            'password' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+                // Required for authentication
+            ],
+            'role' => [
+                'type' => 'ENUM',
+                'constraint' => ['admin', 'member'],
+                'default' => 'member',
             ],
             'phone' => [
                 'type' => 'VARCHAR',
@@ -478,7 +433,9 @@ class CreatePeopleTable extends Migration
         ]);
 
         $this->forge->addPrimaryKey('id');
+        $this->forge->addUniqueKey('email', 'idx_email');
         $this->forge->addKey('company_id', false, false, 'idx_company_id');
+        $this->forge->addKey('role', false, false, 'idx_role');
         $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
         $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('people');
@@ -493,7 +450,7 @@ class CreatePeopleTable extends Migration
 
 ```php
 <?php
-// app/Database/Migrations/2026-01-01-000004_CreateVehiclesTable.php
+// app/Database/Migrations/2026-01-01-000003_CreateVehiclesTable.php
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -577,7 +534,7 @@ class CreateVehiclesTable extends Migration
 
 ```php
 <?php
-// app/Database/Migrations/2026-01-01-000005_CreateEquipmentTable.php
+// app/Database/Migrations/2026-01-01-000004_CreateEquipmentTable.php
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -651,7 +608,7 @@ class CreateEquipmentTable extends Migration
 
 ```php
 <?php
-// app/Database/Migrations/2026-01-01-000006_CreateBookingsTable.php
+// app/Database/Migrations/2026-01-01-000005_CreateBookingsTable.php
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -714,7 +671,7 @@ class CreateBookingsTable extends Migration
         $this->forge->addKey('end_time', false, false, 'idx_end_time');
         $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
         $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('created_by', 'users', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('created_by', 'people', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('bookings');
     }
 
@@ -727,7 +684,7 @@ class CreateBookingsTable extends Migration
 
 ```php
 <?php
-// app/Database/Migrations/2026-01-01-000007_CreateBookingPeopleTable.php
+// app/Database/Migrations/2026-01-01-000006_CreateBookingPeopleTable.php
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -767,7 +724,7 @@ class CreateBookingPeopleTable extends Migration
 
 ```php
 <?php
-// app/Database/Migrations/2026-01-01-000008_CreateBookingVehiclesTable.php
+// app/Database/Migrations/2026-01-01-000007_CreateBookingVehiclesTable.php
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -807,7 +764,7 @@ class CreateBookingVehiclesTable extends Migration
 
 ```php
 <?php
-// app/Database/Migrations/2026-01-01-000009_CreateBookingEquipmentTable.php
+// app/Database/Migrations/2026-01-01-000008_CreateBookingEquipmentTable.php
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -874,12 +831,17 @@ Request:
 Response (201):
 ```json
 {
-    "user": {
+    "person": {
         "id": 1,
         "name": "John Doe",
         "email": "john@acme.com",
         "role": "admin",
-        "company_id": 1
+        "company_id": 1,
+        "phone": null,
+        "skills": [],
+        "certifications": [],
+        "hourly_rate": null,
+        "is_deleted": false
     },
     "company": {
         "id": 1,
@@ -889,6 +851,8 @@ Response (201):
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+**Note**: Registration creates an admin person for the new company. Changed from `user` to `person` to reflect unified entity.
 
 **POST /api/auth/login**
 
@@ -903,16 +867,23 @@ Request:
 Response (200):
 ```json
 {
-    "user": {
+    "person": {
         "id": 1,
         "name": "John Doe",
         "email": "john@acme.com",
         "role": "admin",
-        "company_id": 1
+        "company_id": 1,
+        "phone": null,
+        "skills": [],
+        "certifications": [],
+        "hourly_rate": null,
+        "is_deleted": false
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+**Note**: Changed from `user` to `person` to reflect unified entity.
 
 ---
 
@@ -930,8 +901,10 @@ Response (200):
 **GET /api/people**
 
 Query Parameters:
+- `assignable` (boolean): Filter to only members (excludes admins) for resource assignment (default: false)
 - `include_deleted` (boolean): Include deleted people (default: false)
-- `search` (string): Search by name
+- `role` (string): Filter by role (`admin`, `member`)
+- `search` (string): Search by name or email
 - `per_page` (integer): Items per page (default: 25)
 - `page` (integer): Page number
 
@@ -943,6 +916,7 @@ Response (200):
             "id": 1,
             "name": "John Smith",
             "email": "john.smith@acme.com",
+            "role": "member",
             "phone": "+1234567890",
             "skills": ["electrical", "plumbing"],
             "certifications": ["OSHA", "First Aid"],
@@ -961,6 +935,12 @@ Response (200):
 }
 ```
 
+**Usage for Resource Assignment Panels:**
+```
+GET /api/people?assignable=true&include_deleted=false
+```
+This returns only `member` role people, hiding admins from resource assignment.
+
 **POST /api/people**
 
 Request:
@@ -968,12 +948,17 @@ Request:
 {
     "name": "Jane Doe",
     "email": "jane@example.com",
+    "password": "securepassword123",
+    "role": "member",
     "phone": "+1234567890",
     "skills": ["plumbing", "welding"],
     "certifications": ["First Aid"],
     "hourly_rate": 30.00
 }
 ```
+
+**Required fields:** `name`, `email`, `password`
+**Optional fields:** `role` (default: member), `phone`, `skills`, `certifications`, `hourly_rate`
 
 Response (201):
 ```json
@@ -982,6 +967,7 @@ Response (201):
         "id": 5,
         "name": "Jane Doe",
         "email": "jane@example.com",
+        "role": "member",
         "phone": "+1234567890",
         "skills": ["plumbing", "welding"],
         "certifications": ["First Aid"],
@@ -992,6 +978,8 @@ Response (201):
     }
 }
 ```
+
+**Note**: Password is hashed before storage and never returned in responses.
 
 ---
 
@@ -1323,42 +1311,7 @@ Response (200):
 
 ---
 
-### 5.6 Users (Admin Only)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users` | List company users |
-| POST | `/api/users` | Invite/create user |
-| GET | `/api/users/{id}` | Get user details |
-| PUT | `/api/users/{id}` | Update user |
-| DELETE | `/api/users/{id}` | Remove user |
-
-**POST /api/users**
-
-Request:
-```json
-{
-    "name": "New Member",
-    "email": "newmember@acme.com",
-    "role": "member",
-    "password": "temporarypassword"
-}
-```
-
-Response (201):
-```json
-{
-    "data": {
-        "id": 5,
-        "name": "New Member",
-        "email": "newmember@acme.com",
-        "role": "member",
-        "created_at": "2026-01-22T15:00:00Z"
-    }
-}
-```
-
----
+**Note**: User management is now handled through `/api/people` endpoints. The unified People table serves both authentication and resource scheduling purposes. Use `role` field to distinguish between admins and members.
 
 ## 6. Multi-Tenancy Implementation
 
@@ -1412,22 +1365,28 @@ class BaseModel extends Model
 }
 ```
 
-### 6.2 Person Model
+### 6.2 Person Model (Unified Authentication & Resource)
+
+**Purpose**: Unified model serving both authentication (login) and resource scheduling (job assignment).
 
 ```php
 <?php
 // app/Models/PersonModel.php
 namespace App\Models;
 
+use App\Entities\Person;
+
 class PersonModel extends BaseModel
 {
     protected $table         = 'people';
     protected $primaryKey    = 'id';
-    protected $returnType    = 'array';
+    protected $returnType    = Person::class;
     protected $allowedFields = [
         'company_id',
         'name',
         'email',
+        'password',
+        'role',
         'phone',
         'skills',
         'certifications',
@@ -1436,8 +1395,10 @@ class PersonModel extends BaseModel
     ];
 
     protected $validationRules = [
-        'name'  => 'required|max_length[255]',
-        'email' => 'permit_empty|valid_email|max_length[255]',
+        'name'     => 'required|max_length[255]',
+        'email'    => 'required|valid_email|max_length[255]|is_unique[people.email,id,{id}]',
+        'password' => 'required|min_length[8]',
+        'role'     => 'permit_empty|in_list[admin,member]',
     ];
 
     protected $casts = [
@@ -1447,7 +1408,36 @@ class PersonModel extends BaseModel
         'hourly_rate'    => 'float',
     ];
 
-    protected $beforeInsert = ['setCompanyId'];
+    protected $beforeInsert = ['setCompanyId', 'hashPassword'];
+    protected $beforeUpdate = ['hashPassword'];
+
+    /**
+     * Hash password before insert/update
+     */
+    protected function hashPassword(array $data)
+    {
+        if (isset($data['data']['password'])) {
+            $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
+        }
+        return $data;
+    }
+
+    /**
+     * Find person by email for authentication
+     */
+    public function findByEmail(string $email)
+    {
+        return $this->where('email', $email)->first();
+    }
+
+    /**
+     * Get only assignable people (members, exclude admins)
+     */
+    public function assignable()
+    {
+        return $this->where('is_deleted', 0)
+                    ->where('role', 'member');
+    }
 
     /**
      * Get people for a company with optional filters
@@ -1456,12 +1446,25 @@ class PersonModel extends BaseModel
     {
         $this->where('company_id', $companyId);
 
+        // Filter for assignable (members only)
+        if (!empty($filters['assignable'])) {
+            $this->where('role', 'member');
+        }
+
+        // Filter by role
+        if (!empty($filters['role'])) {
+            $this->where('role', $filters['role']);
+        }
+
         if (!isset($filters['include_deleted']) || !$filters['include_deleted']) {
             $this->where('is_deleted', 0);
         }
 
         if (!empty($filters['search'])) {
-            $this->like('name', $filters['search']);
+            $this->groupStart()
+                 ->like('name', $filters['search'])
+                 ->orLike('email', $filters['search'])
+                 ->groupEnd();
         }
 
         return $this;
@@ -1479,6 +1482,74 @@ class PersonModel extends BaseModel
                   ->where('bp.person_id', $personId)
                   ->get()
                   ->getResultArray();
+    }
+}
+```
+
+**Person Entity** (`app/Entities/Person.php`):
+
+```php
+<?php
+namespace App\Entities;
+
+use CodeIgniter\Entity\Entity;
+
+class Person extends Entity
+{
+    protected $attributes = [
+        'id'             => null,
+        'company_id'     => null,
+        'name'           => null,
+        'email'          => null,
+        'password'       => null,
+        'role'           => 'member',
+        'phone'          => null,
+        'skills'         => [],
+        'certifications' => [],
+        'hourly_rate'    => null,
+        'is_deleted'     => false,
+    ];
+
+    protected $casts = [
+        'skills'         => 'json-array',
+        'certifications' => 'json-array',
+        'is_deleted'     => 'boolean',
+        'hourly_rate'    => 'float',
+    ];
+
+    // Hide password in JSON responses
+    protected $hidden = ['password'];
+
+    /**
+     * Check if person is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->attributes['role'] === 'admin';
+    }
+
+    /**
+     * Check if person is member
+     */
+    public function isMember(): bool
+    {
+        return $this->attributes['role'] === 'member';
+    }
+
+    /**
+     * Check if person can be assigned to bookings
+     */
+    public function isAssignable(): bool
+    {
+        return $this->isMember() && !$this->attributes['is_deleted'];
+    }
+
+    /**
+     * Verify password for authentication
+     */
+    public function verifyPassword(string $password): bool
+    {
+        return password_verify($password, $this->attributes['password']);
     }
 }
 ```
@@ -3034,7 +3105,6 @@ namespace Tests\Feature;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\FeatureTestTrait;
 use CodeIgniter\Test\DatabaseTestTrait;
-use App\Models\UserModel;
 use App\Models\PersonModel;
 use App\Models\VehicleModel;
 use App\Models\BookingModel;
@@ -3050,31 +3120,34 @@ class BookingConflictTest extends CIUnitTestCase
     public function testPreventsOverlappingBookingsForPerson(): void
     {
         // Create test data
-        $userModel = new UserModel();
         $personModel = new PersonModel();
         $bookingModel = new BookingModel();
         $bookingPersonModel = new BookingPersonModel();
 
         $companyId = 1; // Assuming seeded company
 
-        $userId = $userModel->insert([
+        // Create admin person for authentication
+        $adminId = $personModel->insert([
             'company_id' => $companyId,
             'email' => 'admin@test.com',
-            'password' => password_hash('password', PASSWORD_DEFAULT),
+            'password' => 'password', // Will be hashed by model
             'name' => 'Test Admin',
             'role' => 'admin',
         ]);
 
+        // Create member person to be assigned to bookings
         $personId = $personModel->insert([
             'company_id' => $companyId,
             'name' => 'John Smith',
             'email' => 'john@test.com',
+            'password' => 'password',
+            'role' => 'member',
         ]);
 
         // Create first booking
         $bookingId = $bookingModel->insert([
             'company_id' => $companyId,
-            'created_by' => $userId,
+            'created_by' => $adminId,
             'title' => 'Existing Booking',
             'start_time' => '2026-01-25 10:00:00',
             'end_time' => '2026-01-25 12:00:00',
@@ -3084,7 +3157,7 @@ class BookingConflictTest extends CIUnitTestCase
         $bookingPersonModel->attachMany($bookingId, [$personId]);
 
         // Generate JWT token for auth
-        $token = $this->generateTestToken($userId, $companyId, 'admin');
+        $token = $this->generateTestToken($adminId, $companyId, 'admin');
 
         // Attempt overlapping booking
         $result = $this->withHeaders([
@@ -3103,7 +3176,6 @@ class BookingConflictTest extends CIUnitTestCase
 
     public function testAllowsNonOverlappingBookingsForDifferentEntities(): void
     {
-        $userModel = new UserModel();
         $personModel = new PersonModel();
         $vehicleModel = new VehicleModel();
         $bookingModel = new BookingModel();

@@ -87,8 +87,11 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 ### 2.1 Backbone Models
 
 **Tasks:**
-- [ ] Create `src/models/User.js` - User model with isAdmin() method
-- [ ] Create `src/models/Person.js` - Person model with validation and `is_deleted` field
+- [ ] Create `src/models/Person.js` - **Unified Person model** with authentication and resource fields
+  - Authentication fields: email (required), password (required), role (admin/member)
+  - Resource fields: phone, skills, certifications, hourly_rate, is_deleted
+  - Methods: isAdmin(), isMember(), isAssignable()
+  - Validation for name, email, password
 - [ ] Create `src/models/Vehicle.js` - Vehicle model with validation and `is_deleted` field
 - [ ] Create `src/models/Equipment.js` - Equipment model with validation and `is_deleted` field
 - [ ] Create `src/models/Booking.js` - Booking model with validation, getEntityIds() helper, and `is_deleted` field
@@ -96,15 +99,17 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 
 **Validation to implement:**
 - Name required for all entity types
+- Email and password required for Person (authentication)
 - At least one entity required for bookings
 - Start time before end time validation
 - Email format validation for Person
 
-**Note:** All models use soft delete (`is_deleted` flag) instead of hard deletion
+**Note:**
+- All models use soft delete (`is_deleted` flag) instead of hard deletion
+- **User model merged into Person model** - Person serves both authentication and resource scheduling purposes
 
 **Files to create:**
-- `src/models/User.js`
-- `src/models/Person.js`
+- `src/models/Person.js` (unified authentication & resource model)
 - `src/models/Vehicle.js`
 - `src/models/Equipment.js`
 - `src/models/Booking.js`
@@ -115,7 +120,10 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 ### 2.2 Backbone Collections
 
 **Tasks:**
-- [ ] Create `src/collections/People.js` - People collection with `deleted()` filter
+- [ ] Create `src/collections/People.js` - People collection with:
+  - `deleted()` filter
+  - `assignable()` filter - returns only members (excludes admins)
+  - `fetchAssignable()` method - fetch with assignable=true query param
 - [ ] Create `src/collections/Vehicles.js` - Vehicles collection with `deleted()` filter
 - [ ] Create `src/collections/Equipment.js` - Equipment collection with `deleted()` filter
 - [ ] Create `src/collections/Bookings.js` - Bookings collection with:
@@ -125,14 +133,14 @@ This plan outlines the implementation strategy for building the SchedulePro fron
   - `forEquipment(equipmentId, includeDeleted)` method
   - `inDateRange(start, end, includeDeleted)` method
   - `findConflicts()` method (basic overlap checking)
-- [ ] Create `src/collections/Users.js` - Users collection (if needed)
+
+**Note:** Users collection removed - authentication now uses People collection
 
 **Files to create:**
-- `src/collections/People.js`
+- `src/collections/People.js` (with assignable filtering for resource assignment)
 - `src/collections/Vehicles.js`
 - `src/collections/Equipment.js`
 - `src/collections/Bookings.js`
-- `src/collections/Users.js`
 
 ---
 
@@ -147,7 +155,8 @@ This plan outlines the implementation strategy for building the SchedulePro fron
   - Return models, isFetching, error, fetch
 - [ ] Create `src/hooks/useAuth.js` - Authentication hook
   - Manage auth token
-  - Provide login, logout, currentUser
+  - Provide login, logout, currentPerson (changed from currentUser)
+  - Returns Person model with role field for authentication
 
 **Files to create:**
 - `src/hooks/useBackboneModel.js`
@@ -207,8 +216,10 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 **Tasks:**
 - [ ] Implement auto-logout on token expiration
 - [ ] Add logout functionality
-- [ ] Load current user on app initialization
+- [ ] Load current person on app initialization (uses Person model)
 - [ ] Implement role-based UI rendering (Admin vs Member)
+
+**Note:** Authentication now uses Person model instead of separate User model. Login response includes person object with role field.
 
 ---
 
@@ -350,6 +361,8 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 **Tasks:**
 - [ ] Create `src/components/ResourceList/PersonForm.jsx`
   - Name, email, phone inputs
+  - Password field (required on create, optional on update)
+  - Role dropdown (admin/member)
   - Skills (multi-select or tags)
   - Certifications (multi-select or tags)
   - Hourly rate
@@ -400,6 +413,7 @@ This plan outlines the implementation strategy for building the SchedulePro fron
 - [ ] Create `src/components/ResourceAssignment/EntityList.jsx`
   - Search input
   - Scrollable list
+  - **Filter people to show only members (exclude admins)**
 - [ ] Create `src/components/ResourceAssignment/EntityListItem.jsx`
   - Checkbox or click handler
   - Entity details display
@@ -413,6 +427,7 @@ This plan outlines the implementation strategy for building the SchedulePro fron
   - Left panel: Entity selection with tabs
   - Right panel: Booking context with assigned entities
   - Add/remove handlers
+  - **Use People.assignable() or fetchAssignable() to exclude admins**
 
 **Files to create:**
 - `src/components/ResourceAssignment/EntityTabs.jsx`

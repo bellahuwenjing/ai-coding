@@ -8,6 +8,41 @@ This document defines the workflow preferences and conventions for this project.
 
 ## Documentation Conventions
 
+### Session Chat Log (`session-chat-log.md`)
+
+**Purpose:** Maintain a running log of all user prompts during the current session to prevent loss of context during mode transitions.
+
+**Format:**
+- Log each user prompt immediately when received
+- Use simple timestamp or sequential numbering
+- Record user's **exact words** without interpretation
+- Keep it simple - just the raw prompts, no responses needed
+
+**Timing:**
+- Log user prompts **as they arrive** during the session
+- Especially critical before entering plan mode (to capture the triggering prompt)
+- Continue logging throughout plan mode discussions
+- This ensures prompts aren't lost during mode transitions or context compression
+
+**Usage:**
+- When updating `prompt-history.md`, reference `session-chat-log.md` to retrieve exact user words
+- User can also provide prompts from their chat history (up/down arrows) if needed
+- Clear or archive the log at the end of major sessions
+
+**Example:**
+```markdown
+# Session Chat Log - January 26, 2026
+
+## Prompt 1
+With the current design, users and people are separate entities. However, people are essentially member users who can be assigned to jobs. Can you simplify the structure and use person model/collection and api enpoint for users? Admin users can be hidden from the resource list.
+
+## Prompt 2
+[clarification during plan mode]
+
+## Prompt 3
+Implement the following plan: [plan text]
+```
+
 ### Prompt History (`prompt-history.md`)
 
 **Purpose:** Track the evolution of the SchedulePro product through prompts and responses.
@@ -66,10 +101,17 @@ This document defines the workflow preferences and conventions for this project.
 
 ## Plan Mode Conventions
 
+### Before Entering Plan Mode
+
+**Critical action to prevent prompt loss:**
+1. **Immediately log the triggering user prompt to `session-chat-log.md`** before entering plan mode
+   - This preserves the original question that started the planning discussion
+   - Prevents loss during mode transitions
+
 ### Before Exiting Plan Mode
 
 **Always perform these actions:**
-1. Update `prompt-history.md` with user's exact words from the planning discussion
+1. Update `prompt-history.md` with user's exact words from `session-chat-log.md` or by asking user to provide from their chat history
 2. Reference transcript files in the plan document for context preservation
 3. Ensure plan includes clear implementation steps
 
@@ -95,6 +137,18 @@ This document defines the workflow preferences and conventions for this project.
 **If context is getting compressed:**
 - User may reference documentation files to reinforce conventions
 - Claude should proactively read documentation files when uncertain about preferences
+
+**Maintain session chat log:**
+- Log each user prompt to `session-chat-log.md` as it arrives
+- This prevents prompt loss during mode transitions
+- Especially important before entering plan mode
+
+### Ending Sessions
+
+**Before ending a major work session:**
+- Ensure all prompts from `session-chat-log.md` have been properly documented in `prompt-history.md`
+- Clear or archive `session-chat-log.md` to start fresh next time
+- The session chat log is temporary; prompt history is permanent
 
 ---
 

@@ -556,3 +556,91 @@ After asking clarification questions via AskUserQuestion (user prioritized clari
 - Entities are either deleted (`is_deleted = 1`) or not deleted (`is_deleted = 0`)
 
 ---
+
+### Prompt 28
+
+**User (exact words):**
+> With the current design, users and people are separate entities. However, people are essentially member users who can be assigned to jobs. Can you simplify the structure and use person model/collection and api enpoint for users? Admin users can be hidden from the resource list.
+
+**Context:** User entered plan mode to design the merge strategy. After plan approval, user provided the full implementation plan text starting with "# Plan: Merge User and Person Entities into Unified People Table"
+
+**Response:** Implemented the complete User/Person merge across all documentation files:
+
+**1. Backend PRD (`docs/prd/PRD-backend.md`) - Database Schema:**
+- Removed Section 4.2 `users` table entirely
+- Merged authentication fields into Section 4.3 `people` table:
+  - Added `email VARCHAR(255) NOT NULL` (required for login, unique index)
+  - Added `password VARCHAR(255) NOT NULL` (required for authentication)
+  - Added `role ENUM('admin', 'member') DEFAULT 'member'`
+  - Added index on `role`
+  - Removed `email_verified_at` (MVP simplification)
+- Updated `auth_tokens` table: Changed `user_id` → `person_id` with FK to `people(id)`
+- Updated `bookings` table: Changed `created_by` FK from `users(id)` to `people(id)`
+- Renumbered all migration files (removed CreateUsersTable migration)
+
+**2. Backend PRD - API Endpoints:**
+- Authentication endpoints now return `person` object instead of `user`:
+  - `POST /api/auth/register` - Returns person with role, phone, skills, certifications, hourly_rate
+  - `POST /api/auth/login` - Returns person with full resource fields
+- People endpoints enhanced:
+  - `GET /api/people` - Added query parameters:
+    - `assignable=true` - Filter to only members (excludes admins)
+    - `role=admin|member` - Filter by role
+    - `search` - Enhanced to search both name and email
+  - `POST /api/people` - Now requires email, password, role fields
+- Removed Section 5.6 `/api/users` endpoints (replaced with note about unified `/api/people`)
+
+**3. Backend PRD - Models:**
+- PersonModel enhanced as "Unified Authentication & Resource" model:
+  - Added to `$allowedFields`: email, password, role
+  - Added validation: email (required, unique, valid), password (required, min 8), role (in_list)
+  - Added `$beforeInsert` and `$beforeUpdate` hooks for password hashing
+  - Added methods:
+    - `hashPassword()` - Hash password before storage
+    - `findByEmail()` - Find person by email for authentication
+    - `assignable()` - Scope to get only members (exclude admins)
+    - Enhanced `getFiltered()` with assignable and role filters
+  - Changed `$returnType` to `Person::class` entity
+- Created Person Entity class:
+  - `$hidden = ['password']` - Hide password in JSON responses
+  - `isAdmin()`, `isMember()`, `isAssignable()` helper methods
+  - `verifyPassword()` - Verify password for authentication
+- Removed UserModel.php from project structure
+- Updated test examples to use PersonModel instead of UserModel
+
+**4. Frontend PRD (`docs/prd/PRD-frontend.md`):**
+- Authentication section (4.1): Removed User model, added note that authentication uses Person model
+- Person Model (4.4) updated to "Unified Authentication & Resource":
+  - Added authentication fields: email (required), password (required), role (admin/member)
+  - Added methods: isAdmin(), isMember(), isAssignable()
+  - Enhanced validation: email always required, password required on create
+  - Added design notes about role-based UI access
+- People Collection enhanced:
+  - Added `assignable()` filter - Returns only members (exclude admins)
+  - Added `fetchAssignable()` method - Fetch with assignable=true query param
+- Removed User.js from project structure
+
+**5. Frontend Implementation Plan (`docs/frontend-implementation-plan.md`):**
+- Phase 2.1 (Backbone Models): Removed User.js task, updated Person.js to include authentication fields and role-based methods
+- Phase 2.2 (Backbone Collections): Removed Users.js task, added assignable filtering to People.js
+- Phase 2.3 (React-Backbone Hooks): Updated useAuth.js to provide `currentPerson` instead of `currentUser`
+- Phase 3.2 (Session Management): Updated to load "current person" with note about Person model
+- Phase 6.2 (Resource Forms): Added password and role fields to PersonForm
+- Phase 7.1 (Resource Assignment Panel): Added requirement to filter people to show only members, use `fetchAssignable()`
+
+**Key Design Decisions Documented:**
+- Email REQUIRED (NOT NULL) - All people can log in
+- Password REQUIRED (NOT NULL) - All people can authenticate
+- Two-tier role system: admin (hidden from resource panels) vs member (assignable to bookings)
+- No email verification for MVP
+- API strategy: Keep `/api/auth/*` separate, unify under `/api/people`
+- Resource assignment filtering: `role = 'member'` AND `is_deleted = 0`
+
+**Files Updated:**
+- `docs/prd/PRD-backend.md` - Sections 3, 4, 5, 6, 14
+- `docs/prd/PRD-frontend.md` - Sections 4.1, 4.4, 6
+- `docs/frontend-implementation-plan.md` - Phases 2, 3, 6, 7
+
+**Context:** This implements the architectural decision to consolidate authentication and resource management into a single unified Person entity, eliminating the duplication between users (login) and people (schedulable resources) tables.
+
+---

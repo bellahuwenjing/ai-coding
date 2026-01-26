@@ -426,7 +426,6 @@ schpro-frontend/
 │   │   ├── Vehicle.js
 │   │   ├── Equipment.js
 │   │   ├── Booking.js
-│   │   ├── User.js
 │   │   └── Company.js
 │   ├── collections/         # Backbone collections
 │   │   ├── People.js
@@ -478,21 +477,14 @@ schpro-frontend/
 - Role-based UI rendering (Admin vs Member)
 - Redirect to login on unauthenticated access
 
-**User Model:**
+**Person Model (for Authentication):**
+
+Note: The Person model serves dual purposes - authentication and resource management. See section 4.4 for full Person model definition.
+
 ```javascript
-const User = Backbone.Model.extend({
-    urlRoot: '/api/auth/me',
-    defaults: {
-        id: null,
-        email: '',
-        name: '',
-        role: 'member', // 'admin' | 'member'
-        company_id: null
-    },
-    isAdmin() {
-        return this.get('role') === 'admin';
-    }
-});
+// Authentication uses the Person model - see 4.4 Resource Management
+// Login endpoint: POST /api/auth/login
+// Response includes person object with role field
 ```
 
 ---
@@ -560,27 +552,65 @@ interface BookingsListViewProps {
 - Deleted resources shown with visual distinction (grayed out, strikethrough)
 - "Undelete" button to restore deleted resources (sets `is_deleted = 0`)
 
-**Person Model:**
+**Person Model (Unified Authentication & Resource):**
+
+**Purpose**: Unified model serving both authentication (login) and resource scheduling (job assignment). All people can log in; members are assignable to bookings, admins are hidden from resource panels.
+
 ```javascript
 const Person = Backbone.Model.extend({
     urlRoot: '/api/people',
     defaults: {
         id: null,
+        company_id: null,
         name: '',
-        email: '',
+        email: '',              // Required for login
+        password: '',           // Required for authentication (write-only, not returned)
+        role: 'member',         // 'admin' | 'member'
         phone: '',
         skills: [],
         certifications: [],
         hourly_rate: null,
         is_deleted: false
     },
+
+    // Authentication helpers
+    isAdmin() {
+        return this.get('role') === 'admin';
+    },
+
+    isMember() {
+        return this.get('role') === 'member';
+    },
+
+    // Resource assignment helper
+    isAssignable() {
+        return this.get('role') === 'member' && !this.get('is_deleted');
+    },
+
     validate(attrs) {
         if (!attrs.name || attrs.name.trim() === '') {
             return 'Name is required';
         }
+
+        // Email always required
+        if (!attrs.email || attrs.email.trim() === '') {
+            return 'Email is required';
+        }
+
+        // Password required on create (but not on update)
+        if (!this.id && (!attrs.password || attrs.password.trim() === '')) {
+            return 'Password is required';
+        }
     }
 });
 ```
+
+**Key Design Notes:**
+- Email REQUIRED: All people must have email for login access
+- Password REQUIRED: All people can authenticate (never returned in API responses)
+- Role determines UI access and assignability:
+  - `admin`: Full system access, **HIDDEN from resource assignment panels**
+  - `member`: Can log in, view bookings, **CAN be assigned to jobs**
 
 **Vehicle Model:**
 ```javascript
@@ -632,8 +662,24 @@ const People = Backbone.Collection.extend({
     model: Person,
     url: '/api/people',
 
+    // Get deleted people
     deleted() {
         return this.filter(person => person.get('is_deleted'));
+    },
+
+    // Get assignable people (members only, exclude admins)
+    assignable() {
+        return this.filter(person =>
+            person.isAssignable() && !person.get('is_deleted')
+        );
+    },
+
+    // Fetch with assignable filter (for resource assignment panels)
+    fetchAssignable(options = {}) {
+        return this.fetch({
+            ...options,
+            data: { assignable: true, is_deleted: 0 }
+        });
     }
 });
 
