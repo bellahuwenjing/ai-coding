@@ -23,5 +23,5 @@ Start implement the frontend app based on the prd at: docs/prd/frontend/prd.md.
 
 1. generate production-ready code
 2. don't have to follow the best engineering practice - focus on the practical side but also make it extendable
-
-3. leave out authentication, analytics and testing ask questions if need to
+3. leave out authentication, analytics and testing 
+4. ask questions if need to
