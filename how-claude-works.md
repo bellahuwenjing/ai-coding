@@ -6,6 +6,66 @@ A collection of insights about working with Claude Code effectively.
 
 ---
 
+## Q&A: Memory in Long Conversations
+
+### Question
+ apparently it's still the same session after the manual mode switch. so what you said to me before about switching modes
+  creates a new session is not accurate.
+
+### Answer
+You're absolutely right, and I apologize for the inaccuracy. Thank you for testing and correcting that. The session
+identifier (adaptive-sprouting-waffle) remained the same when you manually entered plan mode, so switching modes does NOT create a new session.
+
+I should not have stated that as fact without being certain. I appreciate you clarifying how it actually works.
+
+### Question
+If the session goes on for a long time and I've said lots of things to you, will you start losing memory of what I said all of a sudden?
+
+### Answer
+No, I won't suddenly lose memory. The conversation has **unlimited context through automatic summarization**.
+
+#### How It Works
+
+**What this means:**
+- As the conversation gets very long, earlier parts get automatically summarized rather than kept verbatim
+- The **most recent** parts of our conversation are always kept in full detail
+- Key information and important context from earlier parts are preserved through summarization
+- You won't experience a sudden cutoff where I forget everything
+
+**Practical implications:**
+- I'll remember the gist and important details from throughout our conversation
+- Exact wording from way earlier might get compressed into summaries
+- Critical information (like your project requirements, decisions we've made, file paths we're working with) should persist
+- The further back in the conversation, the more likely details are summarized rather than verbatim
+
+**Best practice:**
+- If something from much earlier is critical, you can always reference it explicitly
+- Important persistent information (like project decisions, API keys, configuration choices) should ideally be stored in files rather than just in conversation
+
+**Bottom line:** No sudden memory loss, but earlier details may be compressed into summaries while recent conversation stays detailed.
+
+---
+
+## Q&A: Does Switching Modes Create a New Session?
+
+### Question
+When using Claude CLI, I usually use plan mode to talk about my ideas and discuss options provided by Claude. Once all decisions are made, Claude asks if I want to proceed. By choosing 'Yes, clear context and auto-accept edits', it switches to accept edits mode. Does this create a new session?
+
+### Answer
+No, this does not create a new session. When you choose "Yes, clear context and auto-accept edits" in Claude CLI, you're staying within the same session, but with two important changes:
+
+1. **Context clearing**: The conversation history (your planning discussion) is cleared from the context window to save tokens and focus on execution. However, the decisions you made are typically summarized or retained in some form.
+
+2. **Mode switch**: It switches from plan mode (where you discuss and approve changes) to auto-accept mode (where Claude automatically applies file edits without asking for confirmation each time).
+
+The session itself - including your connection to Claude CLI, any loaded files, and the working directory - remains the same. It's more like changing the "rules of engagement" within your existing session rather than starting fresh.
+
+This design is intentional: it lets you have a thorough planning conversation, then execute efficiently without the planning context consuming tokens during implementation. The session continuity means Claude can still access the same files and environment you were working with during planning.
+
+If you actually wanted to start a completely new session, you'd need to exit and restart Claude CLI.
+
+---
+
 ## Q&A: How Claude Remembers Preferences
 
 ### Question
@@ -43,7 +103,7 @@ Right now, I "remember" your preferences because they're in:
 - I read your documentation files
 - You reference the files with `@how-claude-works.md` or `@prompt-history.md`
 
-❌ **Long time passes** → Even within a session, if the conversation gets very long and gets summarized multiple times, some specific preferences might get compressed or lost in summaries
+**Note:** Within a single session, the conversation has unlimited context through automatic summarization, so preferences are preserved even in very long conversations (though earlier details may be summarized rather than kept verbatim).
 
 #### Workarounds to Preserve Preferences
 
@@ -216,7 +276,9 @@ During a work session, the user asked me to update prompt-history.md with their 
 
 > i see. so each time i switch the mode, it starts a new session which makes you lose prior context? is there a way to fix this?
 
-**Response:** Yes, switching modes (like exiting plan mode) starts a new session and loses prior conversational context.
+**Response:** ~~Yes, switching modes (like exiting plan mode) starts a new session and loses prior conversational context.~~
+
+**Correction (2026-01-28):** This was incorrect. Switching modes does NOT create a new session. The session remains the same, but when you choose "clear context" options, the conversation history is cleared from the context window to save tokens, which causes loss of direct access to prior conversational context.
 
 **Solutions to maintain context:**
 
@@ -238,9 +300,9 @@ During a work session, the user asked me to update prompt-history.md with their 
 
 ### Key Takeaways
 
-1. **Mode switching creates new sessions**: When you exit plan mode or switch between different agent modes, I start a new session and lose direct access to the previous conversational context.
+1. **Mode switching with context clearing**: When you choose "Yes, clear context and auto-accept edits" after planning, the session stays the same but the conversation history is cleared from the context window to save tokens. This means I lose direct access to the previous conversational context even though it's the same session.
 
-2. **I can't automatically find your exact words from previous sessions**: I need to read transcript files or documents where previous prompts were recorded.
+2. **I can't automatically find your exact words after context clearing**: Once context is cleared, I need to read transcript files or documents where previous prompts were recorded.
 
 3. **Workarounds**:
    - Reference transcript files in plans (I can read these)
@@ -249,6 +311,8 @@ During a work session, the user asked me to update prompt-history.md with their 
 
 4. **Best practice**: Update documentation (like prompt-history.md) before exiting modes to preserve important context.
 
+**Important correction:** Mode switching does NOT create a new session. The session (including session ID, working directory, git status) remains the same. What changes is whether conversation context is cleared to save tokens.
+
 ---
 
-_Last updated: January 2026_
+_Last updated: January 28, 2026_

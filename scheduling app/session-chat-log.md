@@ -31,6 +31,9 @@ With the current design, users and people are separate entities. However, people
 ## Prompt 6
 it seems to be an ongoing issue when i use plan mode. what we agreed on did not ensure my original prompt during the plan session get captured. since i can use up and down arrows to get chat history quite easily, why can't you keep a log of the chat history too?
 
+## Prompt 7
+do you think i'm ready to run the init command
+
 ---
 
 _This log should be cleared or archived at the end of major work sessions._

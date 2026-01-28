@@ -3024,13 +3024,195 @@ session.savePath = WRITEPATH/session
 
 ## 13. Deployment
 
+### 13.0 Project Initialization (Development Setup)
+
+**Prerequisites:**
+- PHP 8.1+ installed
+- Composer installed
+- MySQL 8.0+ or MariaDB 10.6+ installed and running
+- Git installed (optional)
+
+**Step 1: Create CodeIgniter 4 Project**
+
+```bash
+# Navigate to backend directory
+cd schpro-backend
+
+# Create CodeIgniter 4 project using Composer
+composer create-project codeigniter4/appstarter .
+
+# Install JWT library for authentication
+composer require firebase/php-jwt
+```
+
+**Step 2: Configure Environment**
+
+```bash
+# Copy environment template
+cp env .env
+
+# Generate JWT secret key
+openssl rand -base64 32
+# Copy the output for the next step
+```
+
+**Edit `.env` file with your configuration:**
+
+```env
+#--------------------------------------------------------------------
+# ENVIRONMENT
+#--------------------------------------------------------------------
+CI_ENVIRONMENT = development
+
+#--------------------------------------------------------------------
+# APP
+#--------------------------------------------------------------------
+app.baseURL = 'http://localhost:8080/'
+app.indexPage = ''
+app.defaultLocale = 'en'
+app.supportedLocales = 'en'
+
+#--------------------------------------------------------------------
+# DATABASE
+#--------------------------------------------------------------------
+database.default.hostname = localhost
+database.default.database = schedulepro
+database.default.username = root
+database.default.password = your_mysql_password
+database.default.DBDriver = MySQLi
+database.default.DBPrefix =
+database.default.port = 3306
+
+#--------------------------------------------------------------------
+# JWT AUTHENTICATION
+#--------------------------------------------------------------------
+jwt.secret = PASTE_YOUR_GENERATED_SECRET_HERE
+jwt.expire = 86400
+jwt.algorithm = HS256
+
+#--------------------------------------------------------------------
+# CORS (for frontend connection)
+#--------------------------------------------------------------------
+cors.allowedOrigins = http://localhost:5173
+cors.allowedMethods = GET, POST, PUT, DELETE, OPTIONS
+cors.allowedHeaders = Content-Type, Authorization
+```
+
+**Step 3: Create Database**
+
+```bash
+# Connect to MySQL
+mysql -u root -p
+
+# Create database
+CREATE DATABASE schedulepro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+# Exit MySQL
+exit;
+```
+
+**Step 4: Run Migrations**
+
+```bash
+# Run database migrations to create tables
+php spark migrate
+
+# Check migration status
+php spark migrate:status
+```
+
+**Step 5: Seed Test Data (Optional)**
+
+```bash
+# Seed database with test data
+php spark db:seed DatabaseSeeder
+```
+
+**Step 6: Start Development Server**
+
+```bash
+# Start CodeIgniter development server
+php spark serve
+
+# Server will run at http://localhost:8080
+```
+
+**Step 7: Test API**
+
+```bash
+# Test basic API endpoint (use curl, Postman, or browser)
+curl http://localhost:8080/api/
+
+# Expected response:
+# {"status":"success","message":"API is running"}
+```
+
+**Step 8: Enable CORS (For Frontend Integration)**
+
+Create or edit `app/Config/Filters.php` to enable CORS for API routes:
+
+```php
+public array $globals = [
+    'before' => [
+        // 'honeypot',
+        'csrf' => ['except' => 'api/*'], // Disable CSRF for API routes
+        'cors',
+    ],
+    'after' => [
+        'toolbar',
+        // 'honeypot',
+        'cors',
+    ],
+];
+```
+
+Create `app/Filters/Cors.php`:
+
+```php
+<?php
+
+namespace App\Filters;
+
+use CodeIgniter\Filters\FilterInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+
+class Cors implements FilterInterface
+{
+    public function before(RequestInterface $request, $arguments = null)
+    {
+        header('Access-Control-Allow-Origin: ' . getenv('cors.allowedOrigins'));
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
+        if ($request->getMethod() === 'options') {
+            exit;
+        }
+    }
+
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    {
+        return $response;
+    }
+}
+```
+
+**Troubleshooting:**
+
+- **Port 8080 already in use:** Use `php spark serve --port=8081`
+- **Database connection failed:** Check MySQL is running and credentials in `.env` are correct
+- **Migration failed:** Ensure database exists and user has CREATE TABLE permissions
+- **JWT errors:** Verify `jwt.secret` is set in `.env` and is at least 32 characters
+
+---
+
 ### 13.1 Requirements
 - PHP 8.1+
 - MySQL 8.0+ or MariaDB 10.6+
 - Composer
 - Writable directories: `writable/`
 
-### 13.2 Installation Steps
+### 13.2 Production Installation Steps
 ```bash
 # Install dependencies
 composer install --no-dev --optimize-autoloader

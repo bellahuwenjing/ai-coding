@@ -644,3 +644,89 @@ After asking clarification questions via AskUserQuestion (user prioritized clari
 **Context:** This implements the architectural decision to consolidate authentication and resource management into a single unified Person entity, eliminating the duplication between users (login) and people (schedulable resources) tables.
 
 ---
+
+### Prompt 29
+
+**User (exact words):**
+> it seems to be an ongoing issue when i use plan mode. what we agreed on did not ensure my original prompt during the plan session get captured. since i can use up and down arrows to get chat history quite easily, why can't you keep a log of the chat history too?
+
+**Response:** Updated workflow conventions to address recurring prompt loss during plan mode transitions.
+
+**Changes Made:**
+
+1. **Created new "Session Chat Log" convention** in `workflow-conventions.md`:
+   - Added `session-chat-log.md` as a running log of all user prompts during current session
+   - Logs user's exact words as they arrive, BEFORE any mode transitions
+   - Simple format: timestamp/number + exact user prompt
+   - Temporary file that gets cleared between major sessions
+
+2. **Updated Plan Mode conventions**:
+   - **Before Entering Plan Mode:** Log the triggering prompt immediately to `session-chat-log.md`
+   - **Before Exiting Plan Mode:** Reference `session-chat-log.md` when updating `prompt-history.md`
+
+3. **Created `session-chat-log.md`**:
+   - Logged all 6 prompts from current session including original triggering question
+
+4. **Added session ending guidance**:
+   - Transfer entries from `session-chat-log.md` to `prompt-history.md` before ending
+   - Clear the session log to start fresh next time
+
+**Rationale**: Captures prompts as they arrive rather than trying to remember them after mode transitions. Similar to how user can use up/down arrows to scroll through chat history, this provides a persistent log that survives mode changes.
+
+**Files Updated:**
+- `workflow-conventions.md` - Added Session Chat Log section and updated Plan Mode conventions
+- `session-chat-log.md` - Created with current session prompts
+
+---
+
+### Prompt 30
+
+**User (exact words):**
+> do you think i'm ready to run the init command
+
+**Context:** User asking whether they're ready to initialize the backend (CodeIgniter 4) and frontend (React + Vite) projects after completing comprehensive PRDs.
+
+**Response:** Entered plan mode to assess readiness and identify gaps.
+
+**Assessment Summary:**
+
+**What User Has** ✅:
+- Comprehensive backend PRD (3,194 lines) with complete database schema, API endpoints, models, controllers
+- Comprehensive frontend PRD (1,227 lines) with user stories, Backbone models, React components
+- Detailed frontend implementation plan (778 lines) with 11-phase roadmap
+- Landing page Next.js template already initialized
+- Empty directories ready: `schpro-backend/`, `schpro-frontend/`
+- All architectural decisions made (unified Person entity, soft delete, multi-tenancy, etc.)
+
+**Critical Gaps Identified** ⚠️:
+- No backend implementation plan (frontend has detailed plan, backend only has PRD)
+- No initial project setup instructions (only deployment steps documented)
+- No environment configuration templates (`.env.example` for backend and frontend)
+- No Vite + Backbone.js integration details documented
+- No database seeder plan
+
+**User Questions During Planning:**
+1. "what is vite? why did you recommend it as part of the tech stack? is webpack an alternative to vite?"
+   - Explained Vite (modern build tool, instant dev server, zero-config)
+   - Compared to Webpack (more mature but slower, more complex)
+   - Recommended sticking with Vite for faster development
+
+**User Decisions:**
+- ✅ Stick with Vite for frontend build tool
+- ✅ Create backend implementation plan first (recommended approach)
+
+**Recommendation**: NOT QUITE READY - Address critical gaps first before initialization.
+
+**Plan Created**: Create comprehensive documentation before running init commands:
+1. `docs/backend-implementation-plan.md` - 9-phase implementation roadmap (6 weeks)
+2. Update `docs/prd/PRD-backend.md` Section 13 with init instructions
+3. Document `.env.example` templates for both projects
+4. Document Vite + Backbone.js integration approach
+
+**Timeline**: 30-45 minutes to create all documentation, then ready for initialization with zero blockers.
+
+**Plan File**: `C:\Users\bella\.claude\plans\lazy-spinning-sedgewick.md`
+
+**Status**: Awaiting user approval to proceed with creating backend implementation plan and documentation.
+
+---
