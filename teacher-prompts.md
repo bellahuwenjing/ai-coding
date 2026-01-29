@@ -25,3 +25,19 @@ Start implement the frontend app based on the prd at: docs/prd/frontend/prd.md.
 2. don't have to follow the best engineering practice - focus on the practical side but also make it extendable
 3. leave out authentication, analytics and testing 
 4. ask questions if need to
+
+API strategy: How should I handle the backend API state since it doesn't exist yet?
+Mock data only
+Use hardcoded mock data and fake delays - simple, no backend needed
+
+Components: Which UI component approach do you prefer?
+shadcn/ui
+Pre-built accessible components with Tailwind - fast to build, professional look
+
+Auth handling: since auth is excluded, how should auth-dependent features work?
+mock logged-in state
+assume user is always logged in with fake user data
+
+
+
+implementation-status.md
