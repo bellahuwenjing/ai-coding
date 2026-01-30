@@ -19,11 +19,13 @@ Help me improve my landing page. I've only just downloaded a templates from the 
 
 claude --dangerously-skip-permissions
 
+---
+
 Start implement the frontend app based on the prd at: docs/prd/frontend/prd.md.
 
 1. generate production-ready code
 2. don't have to follow the best engineering practice - focus on the practical side but also make it extendable
-3. leave out authentication, analytics and testing 
+3. leave out authentication, analytics and testing
 4. ask questions if need to
 
 API strategy: How should I handle the backend API state since it doesn't exist yet?
@@ -38,6 +40,23 @@ Auth handling: since auth is excluded, how should auth-dependent features work?
 mock logged-in state
 assume user is always logged in with fake user data
 
+---
+
+continue implementing my frontend. first read frontend-prd.md to understand the requirements.
+then read implementation-status.md to understand current progress. start.
+
+update your implementation progress at implementation-status.md
+
+I will start implement my backend api server for the kiwi car project. First read docs/prd/backend/prd.md to understand. THen make modifications:
+
+- we use supabase for both data storage and user authentication. no authorization needed
+
+- no need for performance optimization yet (we don't need Caching strategy & Redis)
+
+- no need for Docker & docker compose
+- we just need a lean mvp now, make it simple and productive - we can just run the express server locally
+
+update prd where needs to
 
 
-implementation-status.md
+---

@@ -6,6 +6,75 @@ A collection of insights about working with Claude Code effectively.
 
 ---
 
+## Q&A: Working with File Paths and Folder Renames
+
+### Question
+
+Does it mean if I ever change folder name again, or relocate a file, then I should alert you about it explicitly?
+
+### Answer
+
+Good question! Here's the practical answer:
+
+#### What Claude Should Automatically Detect
+
+- **Current working directory** - Shown in the environment info at session start
+- **When you `cd` into a different directory** - Should update working directory context
+- **Git repo status** - Visible in the environment info
+
+#### What Happened in Practice
+
+In one session, there was conflicting information:
+- **Working directory**: `D:\JR AI coding\scheduling-app` ✅ (correct, with hyphen)
+- **Additional working directories**: `D:\JR AI coding\scheduling app\docs` ❌ (stale, with space)
+
+Claude incorrectly relied on the "Additional working directories" instead of the actual working directory, creating files in the wrong location.
+
+#### Best Practices Going Forward
+
+**What Claude Should Do Better:**
+1. **Use relative paths** when possible: `docs/filename.md` instead of absolute paths
+2. **Check the working directory** before creating files
+3. **Prioritize the working directory** over additional working directories
+
+**What Helps You:**
+
+**Yes, explicitly mention it** if you:
+- ✅ Rename folders (especially the project root or major directories)
+- ✅ Restructure the project (moving docs, src, etc.)
+- ✅ Create new directories that Claude needs to reference
+- ✅ Delete directories Claude might try to use
+
+**Quick Alert Format:**
+> "FYI: I renamed `scheduling app` to `scheduling-app` (spaces cause issues with Vercel)"
+
+or
+
+> "FYI: I moved all the docs from `docs/` to `documentation/`"
+
+This takes 5 seconds and prevents files from being created in the wrong place.
+
+#### Why Explicit Alerts Help
+
+Even though Claude should detect these changes automatically:
+1. **Environment info can be stale** (as demonstrated)
+2. **Claude might have cached paths** from earlier in the conversation
+3. **Explicit context is clearer** than inferring from subtle changes
+4. **Prevents wasted work** (files in wrong location, having to move them)
+
+#### TL;DR
+
+**Technically:** Claude should auto-detect folder changes via environment info
+
+**Practically:** A quick "FYI: I renamed X to Y" saves time and prevents errors
+
+**Best practice:** When making significant changes to directory structure or file locations, mention it explicitly in a message. This is especially important for:
+- Project root folder renames
+- Moving documentation or source directories
+- Changing paths that Claude has referenced multiple times in the session
+
+---
+
 ## Q&A: Memory in Long Conversations
 
 ### Question

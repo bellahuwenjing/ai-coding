@@ -32,7 +32,239 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
 
 ---
 
-## 3. Project Structure
+## 3. Feature Prioritization
+
+### P0 - Critical (MVP Blockers)
+
+**Must be completed before launch. Cannot ship without these features.**
+
+- [ ] **Authentication System**
+  - User registration (creates company + admin user)
+  - Login with JWT token generation
+  - Logout (optional, client-side token removal)
+  - Token validation middleware
+  - Get current user endpoint
+
+- [ ] **Multi-Tenant Architecture**
+  - Company isolation (all queries scoped to company_id)
+  - Company filter middleware
+  - JWT token includes company_id
+  - Cross-tenant access prevention
+
+- [ ] **Role-Based Access Control**
+  - Admin role (full CRUD permissions)
+  - Member role (read-only for resources)
+  - Admin filter middleware for protected endpoints
+  - Role stored in JWT token
+
+- [ ] **People Management**
+  - CRUD operations (create, read, update, delete)
+  - Soft delete with is_deleted flag
+  - Undelete functionality (admin only)
+  - Assignable filter (excludes admins and deleted people)
+  - Password hashing for authentication
+
+- [ ] **Vehicle Management**
+  - CRUD operations
+  - Soft delete with is_deleted flag
+  - Undelete functionality (admin only)
+
+- [ ] **Equipment Management**
+  - CRUD operations
+  - Soft delete with is_deleted flag
+  - Undelete functionality (admin only)
+
+- [ ] **Booking Management**
+  - Create booking with multi-entity assignment (people, vehicles, equipment)
+  - Read bookings with assigned entities
+  - Update booking and sync entity assignments
+  - Delete booking (soft delete)
+  - Undelete booking (admin only)
+  - Junction tables for many-to-many relationships
+
+- [ ] **Basic Conflict Detection**
+  - Time overlap checking for people
+  - Time overlap checking for vehicles
+  - Time overlap checking for equipment
+  - Return 422 with conflict details
+  - Prevent double-booking (no override in MVP)
+
+- [ ] **Data Validation**
+  - Input validation for all endpoints
+  - Required field validation
+  - Email format validation
+  - Date/time format validation
+  - Unique constraints (email, license plate, serial number)
+
+### P1 - High Priority (Post-MVP, Important for Production)
+
+**Should be completed within 1-2 weeks after MVP launch.**
+
+- [ ] **Advanced Booking Filters**
+  - Filter by date range
+  - Filter by person_id
+  - Filter by vehicle_id
+  - Filter by equipment_id
+  - Filter by booking status
+  - Include deleted bookings option
+
+- [ ] **Database Seeders**
+  - Seed test companies
+  - Seed test users (admin and members)
+  - Seed test people, vehicles, equipment
+  - Seed test bookings (with various scenarios)
+
+- [ ] **Comprehensive Testing**
+  - Unit tests for models
+  - Unit tests for libraries (ConflictDetection, BookingService)
+  - Integration tests for all API endpoints
+  - Test coverage > 80%
+  - Authentication flow tests
+  - Multi-tenant isolation tests
+
+- [ ] **API Documentation**
+  - Endpoint documentation with examples
+  - Request/response schemas
+  - Error code documentation
+  - Authentication requirements
+  - Postman collection
+
+- [ ] **Enhanced Error Handling**
+  - Standardized error response format
+  - Detailed error messages
+  - Error logging to files
+  - 500 error handling
+  - Custom exception classes
+
+- [ ] **Bulk Operations**
+  - Delete multiple people at once
+  - Delete multiple vehicles at once
+  - Delete multiple equipment at once
+  - Restore multiple deleted items
+
+### P2 - Medium Priority (Nice to Have)
+
+**Can be added 1-2 months after launch if needed.**
+
+- [ ] **Password Reset**
+  - Forgot password endpoint
+  - Email with reset token
+  - Reset password with token
+  - Token expiration
+
+- [ ] **Email Notifications**
+  - Booking confirmation email
+  - Booking update notification
+  - Booking deletion notification
+  - Conflict detection email alerts
+
+- [ ] **Advanced Search**
+  - Full-text search for people names
+  - Search vehicles by make/model
+  - Search equipment by type
+  - Combined filters (AND/OR conditions)
+
+- [ ] **Pagination**
+  - Paginated results for large datasets
+  - Configurable page size
+  - Total count in response
+  - Next/previous page links
+
+- [ ] **Export Functionality**
+  - Export bookings to CSV
+  - Export people to CSV
+  - Export vehicles to CSV
+  - Date range filters for exports
+
+- [ ] **Audit Logging**
+  - Log all CRUD operations
+  - Track who made changes
+  - Track when changes were made
+  - Audit trail for compliance
+
+- [ ] **Performance Optimizations**
+  - Database query optimization
+  - Indexes on frequently queried columns
+  - Caching for read-heavy operations
+  - Response time monitoring
+
+### P3 - Low Priority (Future Enhancements)
+
+**3+ months after launch. Nice to have but not essential.**
+
+- [ ] **Two-Factor Authentication (2FA)**
+  - TOTP support
+  - SMS verification
+  - Backup codes
+  - 2FA enforcement option
+
+- [ ] **API Webhooks**
+  - Webhook registration
+  - Event notifications (booking created, updated, deleted)
+  - Retry logic for failed webhooks
+  - Webhook signature verification
+
+- [ ] **Custom Fields**
+  - User-defined fields for people
+  - User-defined fields for vehicles
+  - User-defined fields for equipment
+  - Flexible schema support
+
+- [ ] **Recurring Bookings**
+  - Daily recurrence pattern
+  - Weekly recurrence pattern
+  - Monthly recurrence pattern
+  - Recurrence end date
+  - Exception dates
+
+- [ ] **Booking Templates**
+  - Save booking as template
+  - Create booking from template
+  - Template library per company
+
+- [ ] **Advanced Conflict Resolution**
+  - Override conflicts with admin approval
+  - Conflict resolution workflow
+  - Waitlist functionality
+  - Automatic reassignment suggestions
+
+- [ ] **Email Reminders**
+  - Reminder emails before bookings
+  - Configurable reminder timing
+  - Reminder preferences per user
+
+- [ ] **API Rate Limiting**
+  - Per-user rate limits
+  - Per-company rate limits
+  - Rate limit headers in response
+  - Throttling for abuse prevention
+
+- [ ] **Multi-Language Support**
+  - Internationalization (i18n)
+  - Language selection per user
+  - Translated error messages
+  - Translated email templates
+
+- [ ] **Advanced Analytics**
+  - Booking statistics dashboard
+  - Resource utilization reports
+  - Conflict frequency analysis
+  - Usage trends over time
+
+### Priority Summary
+
+| Priority | Features | Timeline | Status |
+|----------|----------|----------|--------|
+| **P0** | 8 core feature groups (45+ individual features) | Must complete before launch | Implementation in progress |
+| **P1** | 6 feature groups (20+ features) | 1-2 weeks post-MVP | Planned |
+| **P2** | 7 feature groups (20+ features) | 1-2 months post-launch | Backlog |
+| **P3** | 10 feature groups (30+ features) | 3+ months post-launch | Future roadmap |
+
+**MVP Definition**: All P0 features completed, tested, and deployed. P1-P3 features are post-MVP enhancements.
+
+---
+
+## 4. Project Structure
 
 ```
 schpro-backend/
@@ -90,9 +322,9 @@ schpro-backend/
 
 ---
 
-## 4. Database Schema
+## 5. Database Schema
 
-### 4.1 companies
+### 5.1 companies
 
 ```sql
 CREATE TABLE companies (
@@ -120,7 +352,7 @@ CREATE TABLE companies (
 }
 ```
 
-### 4.2 auth_tokens (for JWT/token auth)
+### 5.2 auth_tokens (for JWT/token auth)
 
 ```sql
 CREATE TABLE auth_tokens (
@@ -137,7 +369,7 @@ CREATE TABLE auth_tokens (
 );
 ```
 
-### 4.3 people (Unified Authentication & Resource Table)
+### 5.3 people (Unified Authentication & Resource Table)
 
 **Purpose**: Unified table serving both authentication (login) and resource scheduling (job assignment). All people can log in; members are assignable to bookings, admins are hidden from resource panels.
 
@@ -191,7 +423,7 @@ CREATE TABLE people (
 - **No email verification**: Removed `email_verified_at` field for MVP simplicity
 - **Retain resource fields**: All people can have skills, certifications, hourly_rate for reporting
 
-### 4.4 vehicles
+### 5.4 vehicles
 
 ```sql
 CREATE TABLE vehicles (
@@ -214,7 +446,7 @@ CREATE TABLE vehicles (
 );
 ```
 
-### 4.5 equipment
+### 5.5 equipment
 
 ```sql
 CREATE TABLE equipment (
@@ -235,7 +467,7 @@ CREATE TABLE equipment (
 );
 ```
 
-### 4.6 bookings
+### 5.6 bookings
 
 ```sql
 CREATE TABLE bookings (
@@ -260,7 +492,7 @@ CREATE TABLE bookings (
 );
 ```
 
-### 4.7 booking_people (Junction Table)
+### 5.7 booking_people (Junction Table)
 
 ```sql
 CREATE TABLE booking_people (
@@ -275,7 +507,7 @@ CREATE TABLE booking_people (
 );
 ```
 
-### 4.8 booking_vehicles (Junction Table)
+### 5.8 booking_vehicles (Junction Table)
 
 ```sql
 CREATE TABLE booking_vehicles (
@@ -290,7 +522,7 @@ CREATE TABLE booking_vehicles (
 );
 ```
 
-### 4.9 booking_equipment (Junction Table)
+### 5.9 booking_equipment (Junction Table)
 
 ```sql
 CREATE TABLE booking_equipment (
@@ -305,7 +537,7 @@ CREATE TABLE booking_equipment (
 );
 ```
 
-### 4.10 Database Migrations (CI4 Format)
+### 5.10 Database Migrations (CI4 Format)
 
 ```php
 <?php
@@ -804,9 +1036,9 @@ class CreateBookingEquipmentTable extends Migration
 
 ---
 
-## 5. API Endpoints
+## 6. API Endpoints
 
-### 5.1 Authentication
+### 6.1 Authentication
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
@@ -887,7 +1119,7 @@ Response (200):
 
 ---
 
-### 5.2 People
+### 6.2 People
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
@@ -983,7 +1215,7 @@ Response (201):
 
 ---
 
-### 5.3 Vehicles
+### 6.3 Vehicles
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
@@ -1065,7 +1297,7 @@ Response (201):
 
 ---
 
-### 5.4 Equipment
+### 6.4 Equipment
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
@@ -1142,7 +1374,7 @@ Response (201):
 
 ---
 
-### 5.5 Bookings
+### 6.5 Bookings
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
@@ -1313,9 +1545,9 @@ Response (200):
 
 **Note**: User management is now handled through `/api/people` endpoints. The unified People table serves both authentication and resource scheduling purposes. Use `role` field to distinguish between admins and members.
 
-## 6. Multi-Tenancy Implementation
+## 7. Multi-Tenancy Implementation
 
-### 6.1 Base Model with Company Scoping
+### 7.1 Base Model with Company Scoping
 
 ```php
 <?php
@@ -1365,7 +1597,7 @@ class BaseModel extends Model
 }
 ```
 
-### 6.2 Person Model (Unified Authentication & Resource)
+### 7.2 Person Model (Unified Authentication & Resource)
 
 **Purpose**: Unified model serving both authentication (login) and resource scheduling (job assignment).
 
@@ -1554,7 +1786,7 @@ class Person extends Entity
 }
 ```
 
-### 6.3 Vehicle Model
+### 7.3 Vehicle Model
 
 ```php
 <?php
@@ -1623,7 +1855,7 @@ class VehicleModel extends BaseModel
 }
 ```
 
-### 6.4 Equipment Model
+### 7.4 Equipment Model
 
 ```php
 <?php
@@ -1694,7 +1926,7 @@ class EquipmentModel extends BaseModel
 }
 ```
 
-### 6.5 Booking Model
+### 7.5 Booking Model
 
 ```php
 <?php
@@ -1862,7 +2094,7 @@ class BookingModel extends BaseModel
 }
 ```
 
-### 6.6 Booking Person Model (Junction Table)
+### 7.6 Booking Person Model (Junction Table)
 
 ```php
 <?php
@@ -1934,7 +2166,7 @@ class BookingPersonModel extends Model
 }
 ```
 
-### 6.7 Booking Vehicle Model (Junction Table)
+### 7.7 Booking Vehicle Model (Junction Table)
 
 ```php
 <?php
@@ -2006,7 +2238,7 @@ class BookingVehicleModel extends Model
 }
 ```
 
-### 6.8 Booking Equipment Model (Junction Table)
+### 7.8 Booking Equipment Model (Junction Table)
 
 ```php
 <?php
@@ -2078,7 +2310,7 @@ class BookingEquipmentModel extends Model
 }
 ```
 
-### 6.9 Filters (Middleware equivalent)
+### 7.9 Filters (Middleware equivalent)
 
 ```php
 <?php
@@ -2197,7 +2429,7 @@ class CompanyFilter implements FilterInterface
 }
 ```
 
-### 6.10 Filter Configuration
+### 7.10 Filter Configuration
 
 ```php
 <?php
@@ -2227,7 +2459,7 @@ class Filters extends BaseConfig
 
 ---
 
-## 7. Routes Configuration
+## 8. Routes Configuration
 
 ```php
 <?php
@@ -2293,9 +2525,9 @@ $routes->group('api', ['filter' => 'auth'], function ($routes) {
 
 ---
 
-## 8. Business Logic
+## 9. Business Logic
 
-### 8.1 Conflict Detection Library
+### 9.1 Conflict Detection Library
 
 ```php
 <?php
@@ -2514,7 +2746,7 @@ class ConflictDetection
 }
 ```
 
-### 8.2 Booking Service
+### 9.2 Booking Service
 
 ```php
 <?php
@@ -2679,9 +2911,9 @@ class BookingService
 
 ---
 
-## 9. Validation
+## 10. Validation
 
-### 9.1 Custom Validation Configuration
+### 10.1 Custom Validation Configuration
 
 ```php
 <?php
@@ -2806,7 +3038,7 @@ class Validation extends BaseConfig
 }
 ```
 
-### 9.2 Controller Validation Example (PersonController)
+### 10.2 Controller Validation Example (PersonController)
 
 ```php
 <?php
@@ -2947,9 +3179,9 @@ class PersonController extends BaseResourceController
 
 ---
 
-## 10. Error Responses
+## 11. Error Responses
 
-### 10.1 Standard Error Format
+### 11.1 Standard Error Format
 
 ```json
 {
@@ -2961,7 +3193,7 @@ class PersonController extends BaseResourceController
 }
 ```
 
-### 10.2 HTTP Status Codes
+### 11.2 HTTP Status Codes
 
 | Code | Meaning |
 |------|---------|
@@ -2977,19 +3209,19 @@ class PersonController extends BaseResourceController
 
 ---
 
-## 11. Security
+## 12. Security
 
-### 11.1 Authentication
+### 12.1 Authentication
 - All endpoints except `/auth/register` and `/auth/login` require Bearer token (JWT)
 - Tokens expire after 24 hours (configurable)
 - Tokens can be revoked via logout
 
-### 11.2 Authorization
+### 12.2 Authorization
 - Admin role required for create/update/delete operations
 - Member role can only read resources and bookings
 - All queries scoped to user's company via Filters and Model methods
 
-### 11.3 Data Protection
+### 12.3 Data Protection
 - Passwords hashed with `password_hash()` (bcrypt)
 - SQL injection prevented via Query Builder and prepared statements
 - XSS prevented via JSON-only API responses
@@ -2997,7 +3229,7 @@ class PersonController extends BaseResourceController
 
 ---
 
-## 12. Environment Variables
+## 13. Environment Variables
 
 ```env
 # .env
@@ -3022,9 +3254,9 @@ session.savePath = WRITEPATH/session
 
 ---
 
-## 13. Deployment
+## 14. Deployment
 
-### 13.0 Project Initialization (Development Setup)
+### 14.0 Project Initialization (Development Setup)
 
 **Prerequisites:**
 - PHP 8.1+ installed
@@ -3206,13 +3438,13 @@ class Cors implements FilterInterface
 
 ---
 
-### 13.1 Requirements
+### 14.1 Requirements
 - PHP 8.1+
 - MySQL 8.0+ or MariaDB 10.6+
 - Composer
 - Writable directories: `writable/`
 
-### 13.2 Production Installation Steps
+### 14.2 Production Installation Steps
 ```bash
 # Install dependencies
 composer install --no-dev --optimize-autoloader
@@ -3231,7 +3463,7 @@ php spark cache:clear
 chmod -R 755 writable/
 ```
 
-### 13.3 Spark CLI Commands
+### 14.3 Spark CLI Commands
 ```bash
 # Run development server
 php spark serve
@@ -3257,7 +3489,7 @@ php spark make:model ModelName
 php spark routes
 ```
 
-### 13.4 Hosting Options
+### 14.4 Hosting Options
 - Traditional VPS with Apache/Nginx + PHP-FPM
 - DigitalOcean App Platform
 - AWS Elastic Beanstalk
@@ -3265,9 +3497,9 @@ php spark routes
 
 ---
 
-## 14. Testing
+## 15. Testing
 
-### 14.1 Test Coverage Required
+### 15.1 Test Coverage Required
 - Authentication flow (register, login, logout)
 - CRUD operations for people
 - CRUD operations for vehicles
@@ -3277,7 +3509,7 @@ php spark routes
 - Multi-tenant isolation
 - Role-based access control
 
-### 14.2 Example Test
+### 15.2 Example Test
 
 ```php
 <?php
@@ -3427,7 +3659,7 @@ class BookingConflictTest extends CIUnitTestCase
 }
 ```
 
-### 14.3 Running Tests
+### 15.3 Running Tests
 
 ```bash
 # Run all tests

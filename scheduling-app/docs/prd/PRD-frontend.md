@@ -177,7 +177,289 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 ---
 
-## 3. Functional Requirements & Behavior
+## 3. Feature Prioritization
+
+### P0 - Critical (MVP Blockers)
+
+**Must be completed before launch. Cannot ship without these features.**
+
+- [ ] **Authentication UI**
+  - Login page with email/password form
+  - Registration page (company + admin user creation)
+  - Token storage in localStorage
+  - Auto-logout on token expiration (401 response)
+  - Protected route redirects to login
+
+- [ ] **Dashboard/Home Page**
+  - Navigation menu (People, Vehicles, Equipment, Bookings)
+  - Role-based menu items (admin sees all, member sees limited)
+  - User info display (name, role, company)
+  - Logout button
+
+- [ ] **People Management**
+  - People list view (table with name, email, role, skills)
+  - Add person form (modal or page)
+  - Edit person form
+  - Delete person (soft delete with confirmation)
+  - Undelete person button (admin only, shows on deleted items)
+  - Assignable filter (excludes admins and deleted people)
+  - Form validation with error messages
+
+- [ ] **Vehicle Management**
+  - Vehicle list view (table with name, type, capacity, license plate)
+  - Add vehicle form
+  - Edit vehicle form
+  - Delete vehicle (soft delete with confirmation)
+  - Undelete vehicle button (admin only)
+  - Form validation
+
+- [ ] **Equipment Management**
+  - Equipment list view (table with name, type, serial number, condition)
+  - Add equipment form
+  - Edit equipment form
+  - Delete equipment (soft delete with confirmation)
+  - Undelete equipment button (admin only)
+  - Form validation
+
+- [ ] **Booking Form**
+  - Title, location, notes fields
+  - Start date/time and end date/time pickers
+  - Resource assignment with transfer-list UI
+  - Three separate transfer lists (people, vehicles, equipment)
+  - Filter assignable people (exclude admins/deleted)
+  - Submit button (validates all fields)
+  - Cancel button
+  - Form validation
+
+- [ ] **Bookings List View**
+  - List of bookings with title, date/time, location
+  - Filter by date range (start date, end date)
+  - Filter by person assigned
+  - Filter by vehicle assigned
+  - Filter by equipment assigned
+  - View booking details (expand or modal)
+  - Edit booking button (admin only)
+  - Delete booking button (admin only)
+  - Undelete booking button (admin only, for deleted items)
+
+- [ ] **Conflict Detection Display**
+  - Red error alert when conflicts detected
+  - List of conflicting bookings with details
+  - Entity type, entity name, booking title, time range
+  - Block form submission when conflicts exist
+  - Clear message explaining the conflict
+
+- [ ] **Loading States**
+  - Spinner/skeleton while fetching data
+  - Loading indicator on form submission
+  - Disabled state for buttons during loading
+
+- [ ] **Error Handling**
+  - Display API error messages
+  - Form validation error messages
+  - Network error messages
+  - 401/403 error handling (redirect to login)
+  - User-friendly error text
+
+- [ ] **Responsive Design**
+  - Mobile-friendly navigation (hamburger menu)
+  - Forms work on mobile screens
+  - Tables scroll horizontally on small screens
+  - Touch-friendly buttons and inputs
+  - Tested on iOS and Android browsers
+
+- [ ] **Role-Based UI**
+  - Admin sees: Create, edit, delete buttons
+  - Member sees: Read-only views, no action buttons
+  - Hide/show UI elements based on JWT role
+  - Enforce permissions on all actions
+
+### P1 - High Priority (Post-MVP, Important for Production)
+
+**Should be completed within 1-2 weeks after MVP launch.**
+
+- [ ] **Advanced List Features**
+  - Search/filter within lists (by name, email, etc.)
+  - Sort columns (click header to sort)
+  - Pagination for large datasets
+  - Items per page selector (25, 50, 100)
+  - Total count display
+
+- [ ] **Bulk Operations UI**
+  - Multi-select checkboxes in lists
+  - Bulk delete button
+  - Bulk restore button (for deleted items)
+  - "Select all" checkbox
+  - Confirmation modal for bulk actions
+
+- [ ] **Form Enhancements**
+  - Unsaved changes warning (before navigating away)
+  - Auto-save drafts (localStorage)
+  - Field-level validation (blur events)
+  - Clear form button
+  - Keyboard shortcuts (Enter to submit, Esc to cancel)
+
+- [ ] **Booking Details View**
+  - Dedicated page/modal for booking details
+  - Show all assigned people, vehicles, equipment
+  - Show created by, created at, updated at
+  - Link to edit booking
+  - Link to delete booking
+  - Print-friendly view
+
+- [ ] **Loading Optimizations**
+  - Skeleton screens instead of spinners
+  - Optimistic UI updates (update UI before API confirms)
+  - Background data refresh
+  - Cache frequently used data
+
+- [ ] **User Profile Page**
+  - View current user details
+  - Edit profile (name, email)
+  - Change password form
+  - Profile picture upload (optional)
+
+- [ ] **Toast Notifications**
+  - Success toast on create/update/delete
+  - Error toast on failed operations
+  - Auto-dismiss after 3-5 seconds
+  - Stack multiple toasts
+  - Position: top-right or bottom-right
+
+### P2 - Medium Priority (Nice to Have)
+
+**Can be added 1-2 months after launch if needed.**
+
+- [ ] **Calendar View for Bookings**
+  - Month/week/day view toggle
+  - Bookings displayed as calendar events
+  - Color-coded by resource type or status
+  - Click event to view details
+  - Drag-and-drop to reschedule (if time permits)
+
+- [ ] **Export Functionality**
+  - Export people list to CSV
+  - Export vehicles list to CSV
+  - Export equipment list to CSV
+  - Export bookings to CSV (with date range filter)
+  - Download button on each list view
+
+- [ ] **Dark Mode**
+  - Dark theme toggle in header
+  - Store preference in localStorage
+  - Smooth transition between themes
+  - WCAG AA contrast compliance in both themes
+
+- [ ] **Advanced Search**
+  - Global search bar in header
+  - Search across all entities (people, vehicles, equipment, bookings)
+  - Autocomplete suggestions
+  - Recent searches
+  - Search result highlighting
+
+- [ ] **Keyboard Navigation**
+  - Tab through forms logically
+  - Arrow keys to navigate lists
+  - Enter to select/submit
+  - Esc to close modals
+  - Keyboard shortcuts help modal (?)
+
+- [ ] **Better Empty States**
+  - Illustrations for empty lists
+  - Call-to-action buttons on empty states
+  - Helpful onboarding messages
+  - Sample data option (for new companies)
+
+- [ ] **Data Visualization**
+  - Resource utilization charts
+  - Booking frequency graphs
+  - Conflict statistics
+  - Peak usage times visualization
+
+### P3 - Low Priority (Future Enhancements)
+
+**3+ months after launch. Nice to have but not essential.**
+
+- [ ] **Mobile Native App**
+  - iOS app (React Native or native Swift)
+  - Android app (React Native or native Kotlin)
+  - Offline support
+  - Push notifications
+  - Camera integration (for photos)
+
+- [ ] **Offline Support (Web)**
+  - Service worker for offline functionality
+  - Cache API responses
+  - Queue mutations when offline
+  - Sync when connection restored
+  - Offline indicator in UI
+
+- [ ] **Real-Time Updates**
+  - WebSocket connection for live updates
+  - Show when other users create/edit bookings
+  - Live conflict detection as others book
+  - User presence indicators
+  - Real-time notifications
+
+- [ ] **Advanced Conflict Resolution**
+  - Suggest alternative time slots
+  - Suggest alternative resources
+  - Override conflict with approval workflow
+  - Waitlist functionality
+
+- [ ] **Custom Dashboard Widgets**
+  - Drag-and-drop dashboard builder
+  - Widget library (upcoming bookings, resource status, etc.)
+  - User-configurable layout
+  - Save dashboard preferences per user
+
+- [ ] **Booking Templates**
+  - Save frequently used booking configurations
+  - One-click create from template
+  - Template library
+  - Share templates across company
+
+- [ ] **Advanced Reporting**
+  - Custom report builder
+  - Scheduled email reports
+  - PDF export of reports
+  - Drill-down analytics
+
+- [ ] **Integrations**
+  - Google Calendar sync
+  - Outlook Calendar sync
+  - Slack notifications
+  - Email notifications with calendar invites
+
+- [ ] **Multi-Language Support**
+  - Language selector in settings
+  - Translation files for all UI text
+  - RTL language support (Arabic, Hebrew)
+  - Date/time format localization
+
+- [ ] **Accessibility Enhancements**
+  - Screen reader optimizations
+  - High contrast mode
+  - Font size controls
+  - Keyboard-only navigation mode
+  - WCAG AAA compliance
+
+### Priority Summary
+
+| Priority | Features | Timeline | Status |
+|----------|----------|----------|--------|
+| **P0** | 12 core feature groups (60+ individual features) | Must complete before launch | Implementation in progress |
+| **P1** | 6 feature groups (25+ features) | 1-2 weeks post-MVP | Planned |
+| **P2** | 7 feature groups (20+ features) | 1-2 months post-launch | Backlog |
+| **P3** | 10 feature groups (30+ features) | 3+ months post-launch | Future roadmap |
+
+**MVP Definition**: All P0 features completed, tested, and deployed. P1-P3 features are post-MVP enhancements.
+
+**Note**: Calendar view (P2) was originally considered for MVP but postponed to reduce initial scope and accelerate time-to-market. The bookings list view with filters provides sufficient functionality for launch.
+
+---
+
+## 4. Functional Requirements & Behavior
 
 ### 3.1 Resource Management Behavior
 
@@ -347,7 +629,7 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 ---
 
-## 4. Success Criteria
+## 5. Success Criteria
 
 ### 4.1 User Adoption Metrics
 - 80%+ of operations managers log in daily
@@ -372,7 +654,7 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 ---
 
-## 5. Technical Stack
+## 6. Technical Stack
 
 | Component | Technology |
 |-----------|------------|
@@ -385,7 +667,7 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 ---
 
-## 6. Project Architecture
+## 7. Project Architecture
 
 ```
 schpro-frontend/
@@ -466,9 +748,9 @@ schpro-frontend/
 
 ---
 
-## 4. Core Features
+## 8. Core Features
 
-### 4.1 Authentication
+### 8.1 Authentication
 
 **Requirements:**
 - Login form with email/password
@@ -489,7 +771,7 @@ Note: The Person model serves dual purposes - authentication and resource manage
 
 ---
 
-### 4.2 Dashboard
+### 8.2 Dashboard
 
 **Requirements:**
 - Overview of today's bookings
@@ -506,7 +788,7 @@ Note: The Person model serves dual purposes - authentication and resource manage
 
 ---
 
-### 4.3 Bookings List View
+### 8.3 Bookings List View
 
 **Requirements:**
 - Table/list display of all bookings
@@ -541,7 +823,7 @@ interface BookingsListViewProps {
 
 ---
 
-### 4.4 Resource Management (Admin Only)
+### 8.4 Resource Management (Admin Only)
 
 **Requirements:**
 - Tabbed view with People, Vehicles, Equipment tabs
@@ -704,7 +986,7 @@ const EquipmentCollection = Backbone.Collection.extend({
 
 ---
 
-### 4.5 Booking Management
+### 8.5 Booking Management
 
 **Requirements:**
 - Create/edit/delete bookings with soft delete (Admin only)
@@ -922,7 +1204,7 @@ The BookingForm component uses ResourceAssignmentPanel with separate entity coll
 
 ---
 
-### 4.6 Member View
+### 8.6 Member View
 
 **Requirements:**
 - View assigned bookings only (or all, based on settings)
@@ -932,9 +1214,9 @@ The BookingForm component uses ResourceAssignmentPanel with separate entity coll
 
 ---
 
-## 5. React-Backbone Integration
+## 9. React-Backbone Integration
 
-### 5.1 useBackboneModel Hook
+### 9.1 useBackboneModel Hook
 
 ```javascript
 import { useState, useEffect, useCallback } from 'react';
@@ -980,7 +1262,7 @@ export function useBackboneModel(model) {
 }
 ```
 
-### 5.2 useBackboneCollection Hook
+### 9.2 useBackboneCollection Hook
 
 ```javascript
 import { useState, useEffect, useCallback } from 'react';
@@ -1023,9 +1305,9 @@ export function useBackboneCollection(collection) {
 
 ---
 
-## 6. API Integration
+## 10. API Integration
 
-### 6.1 Configuration
+### 10.1 Configuration
 
 ```javascript
 // src/services/api.js
@@ -1065,7 +1347,7 @@ api.interceptors.response.use(
 export default api;
 ```
 
-### 6.2 Backbone Sync Override
+### 10.2 Backbone Sync Override
 
 ```javascript
 // src/services/backboneSync.js
@@ -1104,9 +1386,9 @@ Backbone.sync = function(method, model, options = {}) {
 
 ---
 
-## 7. Routing
+## 11. Routing
 
-### 7.1 Backbone Router
+### 11.1 Backbone Router
 
 ```javascript
 // src/router/AppRouter.js
@@ -1158,7 +1440,7 @@ const AppRouter = Backbone.Router.extend({
 export default new AppRouter();
 ```
 
-### 7.2 React Router Integration
+### 11.2 React Router Integration
 
 ```javascript
 // src/hooks/useRouter.js
@@ -1187,9 +1469,9 @@ export function useRouter() {
 
 ---
 
-## 8. UI Components Specifications
+## 12. UI Components Specifications
 
-### 8.1 Common Components
+### 12.1 Common Components
 
 | Component | Props | Description |
 |-----------|-------|-------------|
@@ -1201,7 +1483,7 @@ export function useRouter() {
 | Spinner | size | Loading indicator |
 | Badge | variant, children | Status badges |
 
-### 8.2 Color Coding
+### 12.2 Color Coding
 
 | Resource Type | Icon | Color |
 |---------------|------|-------|
@@ -1217,7 +1499,7 @@ export function useRouter() {
 
 ---
 
-## 9. Environment Variables
+## 13. Environment Variables
 
 ```env
 # .env.example
@@ -1227,7 +1509,7 @@ VITE_APP_NAME=SchedulePro
 
 ---
 
-## 10. Build & Deployment
+## 14. Build & Deployment
 
 ### 10.1 Development
 ```bash
@@ -1247,7 +1529,7 @@ npm run preview
 
 ---
 
-## 11. Browser Support
+## 15. Browser Support
 
 | Browser | Version |
 |---------|---------|
@@ -1258,7 +1540,7 @@ npm run preview
 
 ---
 
-## 12. Accessibility Requirements
+## 16. Accessibility Requirements
 
 - Keyboard navigation for all interactive elements
 - ARIA labels on icons and buttons
