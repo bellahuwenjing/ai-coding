@@ -743,7 +743,7 @@ After asking clarification questions via AskUserQuestion (user prioritized clari
 
 **Response:** Great! I'm ready to implement the P0 frontend features. Before I start, I have a few questions to ensure I deliver
   exactly what you need:
-  
+
  Clarifying Questions
 
   1. Project Initialization
@@ -778,5 +778,155 @@ After asking clarification questions via AskUserQuestion (user prioritized clari
   Q: Is the backend API running and ready?
   - If yes: I'll use real API endpoints (http://localhost:8080/api)
   - If no: Should I add mock data/responses for testing the UI?
+
+**User's Answers:**
+1. Option A (Initialize now)
+2. Option A (Mock it)
+3. Option B (Incremental)
+4. No backend yet, use mock data/responses
+
+**Response:** Implemented complete P0 frontend features over multiple steps:
+
+**Project Setup:**
+- Initialized Vite + React project in `schpro-frontend/`
+- Installed dependencies: backbone, underscore, axios, tailwindcss@3
+- Fixed Tailwind CSS v4 PostCSS error by downgrading to v3
+- Created all config files (vite.config.js, tailwind.config.js, .env)
+
+**Core Infrastructure (32 files created):**
+- Mock services: mockAuth.js, mockData.js (localStorage-based CRUD)
+- API service with USE_MOCK_API toggle
+- Backbone.sync override for Axios integration
+- React-Backbone hooks: useBackboneModel, useBackboneCollection
+- Backbone models: Person, Vehicle, Equipment, Booking
+- Backbone collections: PeopleCollection, VehiclesCollection, EquipmentCollection, BookingsCollection
+- Common components: Button, LoadingSpinner, ErrorMessage
+
+**Features Implemented:**
+- People Management: PeopleList, PersonForm (modal) with skills tags
+- Vehicles Management: VehiclesList, VehicleForm with all vehicle fields
+- Equipment Management: EquipmentList, EquipmentForm with condition dropdown
+- Bookings Management: BookingsList (card view), BookingForm with 3 transfer lists
+- Transfer List component: Two-panel UI with search, click to move items
+- Soft delete/undelete for all entities
+- Tab navigation in main App
+
+**Mock Data:**
+- localStorage persistence (3 people, 3 vehicles, 3 equipment, 2 bookings)
+- URL cleanup fix for mock API routes
+
+**Documentation Created:**
+- `docs/localStorage-explanation.md` - Dev vs production localStorage usage
+- `docs/frontend-implementation-progress.md` - Complete implementation summary
+
+**User Feedback:** "All seems to work very well" - Confirmed all features working at http://localhost:5175
+
+---
+
+### Prompt 32
+
+**User (exact words):**
+> I will start implement my backend api server for the SchedulePro project. First read @..\docs\prd\PRD-backend.md and @..\docs\backend-implementation-plan.md to understand. 
+Then make modifications: 
+- we use supabase for both data storage and user authentication. Leave authorization out for later. Assume all users are admin roles for now. 
+- recommend hosting options accordingly 
+- no need for performance optimization yet (we don't need Caching strategy & Redis) '
+- we just need a lean mvp now, make it simple and productive - we can just run the express server locally. 
+
+update prd and the implementation plan where needs to
+
+**Context:** User decided to start backend implementation and wants to modify the approach to use Supabase instead of MySQL + custom JWT authentication.
+
+**My Question:**
+> Do i have to switch from using php + codeigniter to express.js if I want to use supabase?
+
+**User's Answer:**
+> option a please
+
+(Option A: Keep PHP + CodeIgniter 4 + Supabase)
+
+**Response:** Updated both backend documents to use **PHP + CodeIgniter 4 + Supabase** for a lean MVP:
+
+**1. Technology Stack Changes:**
+- Database: MySQL → **Supabase (PostgreSQL)**
+- Authentication: Custom JWT → **Supabase Auth**
+- Multi-tenancy: Manual filtering → **Supabase RLS (Row Level Security)**
+- Caching: Redis → **None** (deferred to P1)
+- PHP Library: Added **supabase-php** (community library)
+
+**2. Database Schema Updates (`PRD-backend.md` Section 5):**
+- Changed to PostgreSQL syntax:
+  - `BIGINT UNSIGNED AUTO_INCREMENT` → `UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+  - `JSON` → `JSONB`
+  - `TIMESTAMP` → `TIMESTAMPTZ`
+  - `TINYINT(1)` → `BOOLEAN`
+  - `ENUM` → `TEXT CHECK (... IN (...))`
+- Added RLS policies to every table for automatic company isolation
+- Removed `auth_tokens` table (Supabase handles JWT)
+- Updated `people` table: Added `user_id UUID REFERENCES auth.users(id)`, removed `password` field
+
+**3. Simplified MVP Scope:**
+- **Removed from MVP** (deferred to P1):
+  - ❌ Role-based authorization (all users are admins)
+  - ❌ Redis caching layer
+  - ❌ Custom JWT implementation
+  - ❌ Manual company_id filtering
+  - ❌ CodeIgniter migrations (use Supabase SQL Editor)
+  - ❌ AdminFilter middleware
+  - ❌ CompanyFilter middleware
+
+**4. Project Structure Changes:**
+- **Removed:** `app/Helpers/jwt_helper.php`, `app/Filters/CompanyFilter.php`, `app/Filters/AdminFilter.php`, `app/Database/Migrations/*`
+- **Added:** `app/Config/Supabase.php`, `app/Libraries/SupabaseClient.php`, `app/Filters/SupabaseAuthFilter.php`
+
+**5. Implementation Plan Updates (`backend-implementation-plan.md`):**
+- **Timeline reduced:** 6 weeks → **2-3 weeks** (50% reduction!)
+- Phase 1: Supabase project setup + CodeIgniter initialization (Day 1-2)
+- Phase 2: Supabase Auth integration (Day 3-4)
+- Phase 3: RLS testing (Day 5)
+- Phase 4-6: Resource management simplified (Day 6-9)
+- Phase 7-8: Bookings + conflict detection (Day 10-13)
+- Phase 9: Testing (Day 14)
+
+**6. Environment Variables:**
+```env
+# Before (MySQL + JWT)
+database.default.hostname = localhost
+database.default.database = schedulepro
+jwt.secret = your_jwt_secret
+
+# After (Supabase)
+SUPABASE_URL = https://your-project-id.supabase.co
+SUPABASE_ANON_KEY = your-anon-key
+SUPABASE_SERVICE_ROLE_KEY = your-service-role-key
+```
+
+**7. Hosting Recommendations Updated:**
+- **Recommended for MVP:** Railway (free, easy PHP), Render (free tier), DigitalOcean App Platform ($5/month)
+- **Database:** Supabase cloud (already hosted, free tier, no separate server needed)
+
+**8. Deployment Steps Updated:**
+- Step 1: Create Supabase project at https://supabase.com
+- Step 2: Run SQL schema from PRD Section 5 in Supabase SQL Editor
+- Step 3: Get API keys from Supabase dashboard
+- Step 4: Initialize CodeIgniter 4 + install supabase-php
+- Step 5: Configure .env with Supabase credentials
+- Step 6: Start dev server with `php spark serve`
+
+**Files Updated:**
+- `docs/prd/PRD-backend.md` - Sections 1, 2, 3, 4, 5, 14
+- `docs/backend-implementation-plan.md` - All phases, timeline, dependencies, environment variables
+
+**Summary Document Created:**
+- `docs/backend-supabase-migration-summary.md` - Complete before/after comparison with benefits and implementation steps
+
+**Key Benefits:**
+- ✅ Faster development (2-3 weeks vs 6 weeks)
+- ✅ Database-level security (RLS)
+- ✅ No custom JWT code
+- ✅ Managed database (no server maintenance)
+- ✅ Free tier for MVP
+
+**Ready to start implementation following the updated plan!**
 
 ---

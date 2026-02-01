@@ -1,5 +1,5 @@
 # PRD: Backend API
-## SchedulePro - CodeIgniter 4 + MySQL Multi-Tenant API
+## SchedulePro - CodeIgniter 4 + Supabase Multi-Tenant API (Lean MVP)
 
 ---
 
@@ -9,26 +9,39 @@
 RESTful API for a multi-tenant booking system that manages resources (people, vehicles, equipment) and allocates them to bookings.
 
 ### 1.2 Key Features
-- Multi-tenant architecture (company isolation)
-- Role-based access control (Admin, Member)
+- Multi-tenant architecture (company isolation via Supabase RLS)
+- Authentication via Supabase Auth
 - Separate entity management for People, Vehicles, and Equipment
 - Booking management with multi-entity assignment
 - Basic conflict detection
 - Soft delete with undelete functionality
-- JWT/Token authentication
+
+### 1.3 MVP Scope
+- **No role-based authorization**: All authenticated users are treated as admins for MVP
+- **No caching layer**: Direct Supabase queries without Redis
+- **Local development**: CodeIgniter runs locally via `php spark serve`, connects to Supabase cloud
+- **Lean implementation**: Focus on core CRUD operations and conflict detection only
 
 ---
 
 ## 2. Technical Stack
 
-| Component | Technology |
-|-----------|------------|
-| Framework | CodeIgniter 4.x |
-| Database | MySQL 8 / MariaDB |
-| Authentication | CodeIgniter Shield (or custom JWT with firebase/php-jwt) |
-| Tasks | CodeIgniter Tasks |
-| Cache | Redis (optional) or file |
-| PHP Version | 8.1+ |
+| Component | Technology | Notes |
+|-----------|------------|-------|
+| Framework | CodeIgniter 4.x | Familiar PHP framework |
+| Database | Supabase (PostgreSQL) | Managed Postgres with built-in auth |
+| Authentication | Supabase Auth | JWT authentication via Supabase |
+| Authorization | Supabase RLS (Row Level Security) | Company isolation at database level |
+| Supabase Client | supabase-php (community) | PHP client for Supabase API |
+| PHP Version | 8.1+ | Modern PHP features |
+| Dev Server | php spark serve | Built-in CodeIgniter dev server |
+
+**Why Supabase?**
+- Built-in authentication (no custom JWT implementation needed)
+- Row-level security for multi-tenancy
+- PostgreSQL instead of MySQL (better JSON support)
+- Free tier for MVP development
+- Real-time features available for future use
 
 ---
 
@@ -38,24 +51,24 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
 
 **Must be completed before launch. Cannot ship without these features.**
 
-- [ ] **Authentication System**
-  - User registration (creates company + admin user)
-  - Login with JWT token generation
-  - Logout (optional, client-side token removal)
-  - Token validation middleware
+- [ ] **Authentication System** (via Supabase Auth)
+  - User registration (creates company + person record)
+  - Login with email/password (Supabase handles JWT)
+  - Logout
+  - Token validation middleware (verify Supabase JWT)
   - Get current user endpoint
 
 - [ ] **Multi-Tenant Architecture**
-  - Company isolation (all queries scoped to company_id)
-  - Company filter middleware
-  - JWT token includes company_id
-  - Cross-tenant access prevention
+  - Company isolation via Supabase RLS policies
+  - Automatic company_id filtering in database queries
+  - User belongs to one company (set during registration)
+  - Cross-tenant access prevention via RLS
 
-- [ ] **Role-Based Access Control**
-  - Admin role (full CRUD permissions)
-  - Member role (read-only for resources)
-  - Admin filter middleware for protected endpoints
-  - Role stored in JWT token
+- [ ] **Authorization** (Deferred to P1)
+  - **MVP Assumption**: All authenticated users have admin permissions
+  - No role-based access control in MVP
+  - RLS policies enforce company isolation only
+  - Admin filter middleware NOT needed for MVP
 
 - [ ] **People Management**
   - CRUD operations (create, read, update, delete)
@@ -100,12 +113,17 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
 
 **Should be completed within 1-2 weeks after MVP launch.**
 
+- [ ] **Role-Based Access Control** (Deferred from P0)
+  - Admin role (full CRUD permissions)
+  - Member role (read-only for resources)
+  - Admin filter middleware for protected endpoints
+  - Update RLS policies to include role checks
+
 - [ ] **Advanced Booking Filters**
   - Filter by date range
   - Filter by person_id
   - Filter by vehicle_id
   - Filter by equipment_id
-  - Filter by booking status
   - Include deleted bookings option
 
 - [ ] **Database Seeders**
@@ -133,24 +151,16 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
   - Standardized error response format
   - Detailed error messages
   - Error logging to files
-  - 500 error handling
   - Custom exception classes
-
-- [ ] **Bulk Operations**
-  - Delete multiple people at once
-  - Delete multiple vehicles at once
-  - Delete multiple equipment at once
-  - Restore multiple deleted items
 
 ### P2 - Medium Priority (Nice to Have)
 
 **Can be added 1-2 months after launch if needed.**
 
 - [ ] **Password Reset**
-  - Forgot password endpoint
+  - Forgot password endpoint (via Supabase Auth)
   - Email with reset token
   - Reset password with token
-  - Token expiration
 
 - [ ] **Email Notifications**
   - Booking confirmation email
@@ -168,25 +178,21 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
   - Paginated results for large datasets
   - Configurable page size
   - Total count in response
-  - Next/previous page links
 
 - [ ] **Export Functionality**
   - Export bookings to CSV
   - Export people to CSV
   - Export vehicles to CSV
-  - Date range filters for exports
 
 - [ ] **Audit Logging**
-  - Log all CRUD operations
+  - Log all CRUD operations using Supabase triggers
   - Track who made changes
   - Track when changes were made
-  - Audit trail for compliance
 
-- [ ] **Performance Optimizations**
+- [ ] **Performance Optimizations** (Not needed for MVP)
   - Database query optimization
   - Indexes on frequently queried columns
-  - Caching for read-heavy operations
-  - Response time monitoring
+  - ~~Caching layer (Redis)~~ - Removed for lean MVP
 
 ### P3 - Low Priority (Future Enhancements)
 
@@ -271,18 +277,15 @@ schpro-backend/
 ├── app/
 │   ├── Controllers/
 │   │   ├── Auth/
-│   │   │   ├── LoginController.php
 │   │   │   ├── RegisterController.php
+│   │   │   ├── LoginController.php
 │   │   │   └── LogoutController.php
 │   │   ├── PersonController.php
 │   │   ├── VehicleController.php
 │   │   ├── EquipmentController.php
-│   │   ├── BookingController.php
-│   │   └── UserController.php
+│   │   └── BookingController.php
 │   ├── Filters/
-│   │   ├── AuthFilter.php
-│   │   ├── AdminFilter.php
-│   │   └── CompanyFilter.php
+│   │   └── SupabaseAuthFilter.php      # Verify Supabase JWT tokens
 │   ├── Models/
 │   │   ├── CompanyModel.php
 │   │   ├── PersonModel.php
@@ -293,53 +296,69 @@ schpro-backend/
 │   │   ├── BookingVehicleModel.php
 │   │   └── BookingEquipmentModel.php
 │   ├── Libraries/
+│   │   ├── SupabaseClient.php          # Supabase PHP client wrapper
 │   │   ├── ConflictDetection.php
 │   │   └── BookingService.php
 │   ├── Entities/
 │   │   ├── Company.php
-│   │   ├── User.php
 │   │   ├── Person.php
 │   │   ├── Vehicle.php
 │   │   ├── Equipment.php
 │   │   └── Booking.php
-│   ├── Database/
-│   │   ├── Migrations/
-│   │   └── Seeds/
 │   └── Config/
 │       ├── Routes.php
 │       ├── Filters.php
-│       └── Validation.php
+│       ├── Validation.php
+│       └── Supabase.php                # Supabase configuration
 ├── writable/
-│   ├── logs/
-│   ├── cache/
-│   └── session/
+│   └── logs/
 ├── public/
 │   └── index.php
 ├── tests/
+├── composer.json
 ├── .env
 └── spark
 ```
 
+**Key Changes from Original Structure:**
+- **No Database/Migrations folder**: Supabase handles schema via SQL Editor or CLI
+- **SupabaseClient.php**: Wrapper for supabase-php library
+- **SupabaseAuthFilter.php**: Replaces custom JWT validation
+- **No AdminFilter.php**: MVP assumes all users are admins
+- **No CompanyFilter.php**: RLS handles company isolation automatically
+
 ---
 
-## 5. Database Schema
+## 5. Database Schema (PostgreSQL / Supabase)
+
+**Note**: All tables use PostgreSQL syntax. Create these in Supabase SQL Editor or via Supabase CLI.
 
 ### 5.1 companies
 
 ```sql
 CREATE TABLE companies (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    settings JSON DEFAULT NULL,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-
-    INDEX idx_slug (slug)
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_companies_slug ON companies(slug);
+
+-- RLS Policies
+ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+
+-- Users can only see their own company
+CREATE POLICY "Users can view their own company"
+    ON companies FOR SELECT
+    USING (id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
 ```
 
-**Settings JSON Structure:**
+**Settings JSONB Structure:**
 ```json
 {
     "timezone": "America/New_York",
@@ -352,192 +371,280 @@ CREATE TABLE companies (
 }
 ```
 
-### 5.2 auth_tokens (for JWT/token auth)
+### 5.2 people (Profile & Resource Table)
 
-```sql
-CREATE TABLE auth_tokens (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    person_id BIGINT UNSIGNED NOT NULL,
-    token VARCHAR(64) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-
-    UNIQUE INDEX idx_token (token),
-    INDEX idx_person_id (person_id),
-    FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE
-);
-```
-
-### 5.3 people (Unified Authentication & Resource Table)
-
-**Purpose**: Unified table serving both authentication (login) and resource scheduling (job assignment). All people can log in; members are assignable to bookings, admins are hidden from resource panels.
+**Purpose**: Stores user profiles and resource scheduling data. Links to Supabase Auth's `auth.users` table via `user_id`. Supabase Auth handles authentication; this table stores profile and scheduling info.
 
 ```sql
 CREATE TABLE people (
-    -- Primary identification
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    company_id BIGINT UNSIGNED NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,  -- Links to Supabase Auth
 
-    -- Core identity (required for all)
-    name VARCHAR(255) NOT NULL,
-
-    -- Authentication fields (required - everyone can log in)
-    email VARCHAR(255) NOT NULL,            -- Required for login
-    password VARCHAR(255) NOT NULL,         -- Required for authentication
-
-    -- Role & Access Control
-    role ENUM('admin', 'member') DEFAULT 'member',
+    -- Core identity
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
 
     -- Resource scheduling fields
-    phone VARCHAR(50) NULL,
-    skills JSON NULL,                       -- ["electrical", "plumbing"]
-    certifications JSON NULL,               -- ["OSHA", "First Aid"]
-    hourly_rate DECIMAL(10,2) NULL,
+    phone TEXT,
+    skills JSONB DEFAULT '[]',          -- ["electrical", "plumbing"]
+    certifications JSONB DEFAULT '[]',  -- ["OSHA", "First Aid"]
+    hourly_rate DECIMAL(10,2),
 
     -- Soft delete
-    is_deleted TINYINT(1) DEFAULT 0,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
 
     -- Timestamps
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-
-    -- Indexes
-    UNIQUE INDEX idx_email (email),
-    INDEX idx_company_id (company_id),
-    INDEX idx_role (role),
-    INDEX idx_is_deleted (is_deleted),
-
-    -- Foreign keys
-    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_people_company_id ON people(company_id);
+CREATE INDEX idx_people_user_id ON people(user_id);
+CREATE INDEX idx_people_email ON people(email);
+CREATE INDEX idx_people_is_deleted ON people(is_deleted);
+
+-- RLS Policies
+ALTER TABLE people ENABLE ROW LEVEL SECURITY;
+
+-- MVP: All authenticated users can manage people in their company
+CREATE POLICY "Users can view people in their company"
+    ON people FOR SELECT
+    USING (company_id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Users can insert people in their company"
+    ON people FOR INSERT
+    WITH CHECK (company_id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Users can update people in their company"
+    ON people FOR UPDATE
+    USING (company_id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
+
+CREATE POLICY "Users can delete people in their company"
+    ON people FOR DELETE
+    USING (company_id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
 ```
 
 **Key Design Decisions:**
 
-- **Email REQUIRED**: All people must have email for login access
-- **Password REQUIRED**: All people can authenticate
-- **Two-tier role system**:
-  - `admin`: Full system access, **HIDDEN from resource assignment panels**
-  - `member`: Can log in, view bookings, **CAN be assigned to jobs**
-- **No email verification**: Removed `email_verified_at` field for MVP simplicity
-- **Retain resource fields**: All people can have skills, certifications, hourly_rate for reporting
+- **user_id links to Supabase Auth**: `auth.users` table managed by Supabase
+- **Email stored in both places**: `auth.users.email` (for login) and `people.email` (for reference)
+- **No password field**: Supabase Auth handles passwords securely
+- **No role field**: MVP assumes all users are admins (defer to P1)
+- **RLS enforces company isolation**: `auth.uid()` extracts user_id from JWT token
+- **All authenticated users can CRUD**: No admin-only restrictions in MVP
 
-### 5.4 vehicles
+### 5.3 vehicles
 
 ```sql
 CREATE TABLE vehicles (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    company_id BIGINT UNSIGNED NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    make VARCHAR(100),
-    model VARCHAR(100),
-    year SMALLINT UNSIGNED,
-    license_plate VARCHAR(20),
-    vin VARCHAR(17),
-    capacity VARCHAR(50),
-    is_deleted TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-
-    INDEX idx_company_id (company_id),
-    INDEX idx_is_deleted (is_deleted),
-    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    make TEXT,
+    model TEXT,
+    year SMALLINT,
+    license_plate TEXT,
+    vin TEXT,
+    capacity TEXT,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_vehicles_company_id ON vehicles(company_id);
+CREATE INDEX idx_vehicles_is_deleted ON vehicles(is_deleted);
+
+-- RLS Policies
+ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage vehicles in their company"
+    ON vehicles FOR ALL
+    USING (company_id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
 ```
 
-### 5.5 equipment
+### 5.4 equipment
 
 ```sql
 CREATE TABLE equipment (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    company_id BIGINT UNSIGNED NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    serial_number VARCHAR(100),
-    manufacturer VARCHAR(100),
-    model VARCHAR(100),
-    condition ENUM('excellent', 'good', 'fair', 'poor'),
-    is_deleted TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-
-    INDEX idx_company_id (company_id),
-    INDEX idx_is_deleted (is_deleted),
-    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    serial_number TEXT,
+    manufacturer TEXT,
+    model TEXT,
+    condition TEXT CHECK (condition IN ('excellent', 'good', 'fair', 'poor')),
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_equipment_company_id ON equipment(company_id);
+CREATE INDEX idx_equipment_is_deleted ON equipment(is_deleted);
+
+-- RLS Policies
+ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage equipment in their company"
+    ON equipment FOR ALL
+    USING (company_id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
 ```
 
-### 5.6 bookings
+### 5.5 bookings
 
 ```sql
 CREATE TABLE bookings (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    company_id BIGINT UNSIGNED NOT NULL,
-    created_by BIGINT UNSIGNED NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    location VARCHAR(255) NULL,
-    start_time DATETIME NOT NULL,
-    end_time DATETIME NOT NULL,
-    notes TEXT NULL,
-    is_deleted TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    location TEXT,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    notes TEXT,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
 
-    INDEX idx_company_id (company_id),
-    INDEX idx_start_time (start_time),
-    INDEX idx_end_time (end_time),
-    INDEX idx_is_deleted (is_deleted),
-    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES people(id) ON DELETE CASCADE
+    CONSTRAINT end_after_start CHECK (end_time > start_time)
 );
+
+CREATE INDEX idx_bookings_company_id ON bookings(company_id);
+CREATE INDEX idx_bookings_start_time ON bookings(start_time);
+CREATE INDEX idx_bookings_end_time ON bookings(end_time);
+CREATE INDEX idx_bookings_is_deleted ON bookings(is_deleted);
+
+-- RLS Policies
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage bookings in their company"
+    ON bookings FOR ALL
+    USING (company_id IN (
+        SELECT company_id FROM people WHERE user_id = auth.uid()
+    ));
 ```
 
-### 5.7 booking_people (Junction Table)
+### 5.6 booking_people (Junction Table)
 
 ```sql
 CREATE TABLE booking_people (
-    booking_id BIGINT UNSIGNED NOT NULL,
-    person_id BIGINT UNSIGNED NOT NULL,
-    created_at TIMESTAMP NULL,
+    booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
 
-    PRIMARY KEY (booking_id, person_id),
-    INDEX idx_person_id (person_id),
-    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE
+    PRIMARY KEY (booking_id, person_id)
 );
+
+CREATE INDEX idx_booking_people_person_id ON booking_people(person_id);
+
+-- RLS Policies
+ALTER TABLE booking_people ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage booking_people in their company"
+    ON booking_people FOR ALL
+    USING (booking_id IN (
+        SELECT id FROM bookings WHERE company_id IN (
+            SELECT company_id FROM people WHERE user_id = auth.uid()
+        )
+    ));
 ```
 
-### 5.8 booking_vehicles (Junction Table)
+### 5.7 booking_vehicles (Junction Table)
 
 ```sql
 CREATE TABLE booking_vehicles (
-    booking_id BIGINT UNSIGNED NOT NULL,
-    vehicle_id BIGINT UNSIGNED NOT NULL,
-    created_at TIMESTAMP NULL,
+    booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
 
-    PRIMARY KEY (booking_id, vehicle_id),
-    INDEX idx_vehicle_id (vehicle_id),
-    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
+    PRIMARY KEY (booking_id, vehicle_id)
 );
+
+CREATE INDEX idx_booking_vehicles_vehicle_id ON booking_vehicles(vehicle_id);
+
+-- RLS Policies
+ALTER TABLE booking_vehicles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage booking_vehicles in their company"
+    ON booking_vehicles FOR ALL
+    USING (booking_id IN (
+        SELECT id FROM bookings WHERE company_id IN (
+            SELECT company_id FROM people WHERE user_id = auth.uid()
+        )
+    ));
 ```
 
-### 5.9 booking_equipment (Junction Table)
+### 5.8 booking_equipment (Junction Table)
 
 ```sql
 CREATE TABLE booking_equipment (
-    booking_id BIGINT UNSIGNED NOT NULL,
-    equipment_id BIGINT UNSIGNED NOT NULL,
-    created_at TIMESTAMP NULL,
+    booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    equipment_id UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
 
-    PRIMARY KEY (booking_id, equipment_id),
-    INDEX idx_equipment_id (equipment_id),
-    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    FOREIGN KEY (equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
+    PRIMARY KEY (booking_id, equipment_id)
 );
+
+CREATE INDEX idx_booking_equipment_equipment_id ON booking_equipment(equipment_id);
+
+-- RLS Policies
+ALTER TABLE booking_equipment ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage booking_equipment in their company"
+    ON booking_equipment FOR ALL
+    USING (booking_id IN (
+        SELECT id FROM bookings WHERE company_id IN (
+            SELECT company_id FROM people WHERE user_id = auth.uid()
+        )
+    ));
 ```
 
-### 5.10 Database Migrations (CI4 Format)
+### 5.9 Creating the Schema in Supabase
+
+**Method 1: Supabase SQL Editor (Recommended for MVP)**
+1. Log into Supabase dashboard
+2. Go to SQL Editor
+3. Copy/paste all CREATE TABLE statements above
+4. Run each section separately
+5. Verify tables appear in Table Editor
+
+**Method 2: Supabase CLI**
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Initialize in project
+supabase init
+
+# Create migration file
+supabase migration new initial_schema
+
+# Add SQL to migration file, then push
+supabase db push
+```
+
+**Method 3: CodeIgniter Migrations (Not Recommended)**
+- CodeIgniter migrations designed for MySQL AUTO_INCREMENT
+- PostgreSQL uses UUIDs and different syntax
+- Better to use Supabase tools for schema management
+
+### 5.10 Removed Migration Examples
 
 ```php
 <?php
@@ -3261,10 +3368,39 @@ session.savePath = WRITEPATH/session
 **Prerequisites:**
 - PHP 8.1+ installed
 - Composer installed
-- MySQL 8.0+ or MariaDB 10.6+ installed and running
 - Git installed (optional)
+- Supabase account (free tier available)
 
-**Step 1: Create CodeIgniter 4 Project**
+**Step 1: Create Supabase Project**
+
+1. Go to https://supabase.com and sign up
+2. Click "New Project"
+3. Enter project name (e.g., "schedulepro")
+4. Set database password (save this!)
+5. Choose region closest to you
+6. Wait for project creation (~2 minutes)
+
+**Step 2: Set Up Database Schema**
+
+1. In Supabase dashboard, go to **SQL Editor**
+2. Create a new query
+3. Copy all CREATE TABLE statements from **PRD Section 5** (Database Schema)
+4. Run each table creation separately:
+   - First: `companies` table
+   - Second: `people` table
+   - Then: `vehicles`, `equipment`, `bookings`
+   - Finally: `booking_people`, `booking_vehicles`, `booking_equipment`
+5. Verify tables appear in **Table Editor**
+
+**Step 3: Get Supabase API Keys**
+
+1. Go to **Settings** > **API**
+2. Copy the following:
+   - Project URL (e.g., `https://xxxxx.supabase.co`)
+   - `anon` key (public key for client-side)
+   - `service_role` key (**secret** - keep this safe!)
+
+**Step 4: Create CodeIgniter 4 Project**
 
 ```bash
 # Navigate to backend directory
@@ -3273,19 +3409,15 @@ cd schpro-backend
 # Create CodeIgniter 4 project using Composer
 composer create-project codeigniter4/appstarter .
 
-# Install JWT library for authentication
-composer require firebase/php-jwt
+# Install Supabase PHP client library
+composer require supabase/supabase-php
 ```
 
-**Step 2: Configure Environment**
+**Step 5: Configure Environment**
 
 ```bash
 # Copy environment template
 cp env .env
-
-# Generate JWT secret key
-openssl rand -base64 32
-# Copy the output for the next step
 ```
 
 **Edit `.env` file with your configuration:**
@@ -3302,25 +3434,13 @@ CI_ENVIRONMENT = development
 app.baseURL = 'http://localhost:8080/'
 app.indexPage = ''
 app.defaultLocale = 'en'
-app.supportedLocales = 'en'
 
 #--------------------------------------------------------------------
-# DATABASE
+# SUPABASE
 #--------------------------------------------------------------------
-database.default.hostname = localhost
-database.default.database = schedulepro
-database.default.username = root
-database.default.password = your_mysql_password
-database.default.DBDriver = MySQLi
-database.default.DBPrefix =
-database.default.port = 3306
-
-#--------------------------------------------------------------------
-# JWT AUTHENTICATION
-#--------------------------------------------------------------------
-jwt.secret = PASTE_YOUR_GENERATED_SECRET_HERE
-jwt.expire = 86400
-jwt.algorithm = HS256
+SUPABASE_URL = https://your-project-id.supabase.co
+SUPABASE_ANON_KEY = your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY = your-service-role-key-here
 
 #--------------------------------------------------------------------
 # CORS (for frontend connection)
@@ -3330,37 +3450,16 @@ cors.allowedMethods = GET, POST, PUT, DELETE, OPTIONS
 cors.allowedHeaders = Content-Type, Authorization
 ```
 
-**Step 3: Create Database**
+**Step 6: Configure Supabase Authentication**
 
-```bash
-# Connect to MySQL
-mysql -u root -p
+1. In Supabase dashboard, go to **Authentication** > **Providers**
+2. Enable **Email** provider
+3. **Disable email confirmation** for MVP (or handle in code):
+   - Go to **Authentication** > **Settings**
+   - Uncheck "Enable email confirmations"
+4. Set **Site URL** to `http://localhost:5173` (frontend URL)
 
-# Create database
-CREATE DATABASE schedulepro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-# Exit MySQL
-exit;
-```
-
-**Step 4: Run Migrations**
-
-```bash
-# Run database migrations to create tables
-php spark migrate
-
-# Check migration status
-php spark migrate:status
-```
-
-**Step 5: Seed Test Data (Optional)**
-
-```bash
-# Seed database with test data
-php spark db:seed DatabaseSeeder
-```
-
-**Step 6: Start Development Server**
+**Step 7: Start Development Server**
 
 ```bash
 # Start CodeIgniter development server
@@ -3440,9 +3539,9 @@ class Cors implements FilterInterface
 
 ### 14.1 Requirements
 - PHP 8.1+
-- MySQL 8.0+ or MariaDB 10.6+
 - Composer
-- Writable directories: `writable/`
+- Supabase project (database is cloud-hosted)
+- Writable directories: `writable/logs/`
 
 ### 14.2 Production Installation Steps
 ```bash
@@ -3451,12 +3550,11 @@ composer install --no-dev --optimize-autoloader
 
 # Set environment
 cp env .env
-# Edit .env with production settings
+# Edit .env with production Supabase credentials
 
-# Run migrations
-php spark migrate
+# No migrations needed - schema already in Supabase
 
-# Clear and rebuild caches
+# Clear caches
 php spark cache:clear
 
 # Ensure writable permissions
@@ -3468,17 +3566,6 @@ chmod -R 755 writable/
 # Run development server
 php spark serve
 
-# Run migrations
-php spark migrate
-php spark migrate:rollback
-php spark migrate:status
-
-# Database seeding
-php spark db:seed DatabaseSeeder
-
-# Create new migration
-php spark make:migration CreateTableName
-
 # Create new controller
 php spark make:controller ControllerName
 
@@ -3487,13 +3574,63 @@ php spark make:model ModelName
 
 # View routes
 php spark routes
+
+# Note: No migration commands needed with Supabase
+# Use Supabase SQL Editor or CLI for schema changes
 ```
 
-### 14.4 Hosting Options
-- Traditional VPS with Apache/Nginx + PHP-FPM
-- DigitalOcean App Platform
-- AWS Elastic Beanstalk
-- Shared hosting (with PHP 8.1+ support)
+### 14.4 Hosting Options (CodeIgniter + Supabase)
+
+**Recommended for MVP:**
+
+1. **Railway** (Easiest for PHP)
+   - Free tier with usage limits
+   - Automatic deployments from GitHub
+   - Built-in environment variables
+   - Simple PHP support
+   - Steps:
+     ```bash
+     # Add railway.toml or use Nixpacks auto-detection
+     # Set environment variables in Railway dashboard
+     # Connect GitHub repo and deploy
+     ```
+
+2. **Render** (Good free tier)
+   - Free tier for web services
+   - Automatic GitHub deploys
+   - Custom domains on free tier
+   - Steps:
+     - Create Web Service from GitHub repo
+     - Set Build Command: `composer install --no-dev`
+     - Set Start Command: `php -S 0.0.0.0:$PORT -t public`
+     - Add environment variables
+
+3. **DigitalOcean App Platform**
+   - $5/month starter tier
+   - Fully managed platform
+   - Automatic scaling
+   - Good for production
+
+4. **Traditional VPS** (More control)
+   - DigitalOcean Droplet ($6/month)
+   - Vultr
+   - Linode
+   - Install Apache/Nginx + PHP 8.1+
+   - Point to `public/` directory
+   - Configure SSL with Let's Encrypt
+
+5. **Shared Hosting** (Budget option)
+   - Requires PHP 8.1+ support
+   - cPanel or similar
+   - Upload files via FTP/Git
+   - Configure .htaccess for CodeIgniter
+
+**Database Hosting:**
+- ✅ **Supabase cloud** (Recommended) - Already hosted, free tier available
+- Scales automatically with your app
+- No additional database server needed
+
+**For MVP:** Start with **Railway** or **Render** for free hosting. Upgrade to DigitalOcean or VPS when you need more resources.
 
 ---
 

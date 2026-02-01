@@ -1,25 +1,32 @@
 # Backend Implementation Plan
-## SchedulePro CodeIgniter 4 + MySQL Multi-Tenant API
+## SchedulePro CodeIgniter 4 + Supabase Multi-Tenant API (Lean MVP)
 
 ---
 
 ## Overview
 
-This plan outlines the implementation strategy for building the SchedulePro backend API using CodeIgniter 4 and MySQL with multi-tenant architecture.
+This plan outlines the implementation strategy for building the SchedulePro backend API using CodeIgniter 4 with Supabase (PostgreSQL + Auth) for multi-tenant architecture.
 
-**Based on:** `docs/prd/PRD-backend.md` v3.0
+**Based on:** `docs/prd/PRD-backend.md` v4.0 (Supabase Edition)
+
+**Key Changes from Original Plan:**
+- Use Supabase for database (PostgreSQL instead of MySQL)
+- Use Supabase Auth for authentication (no custom JWT)
+- Use supabase-php library for database access
+- RLS (Row Level Security) handles company isolation automatically
+- No role-based authorization in MVP (all users are admins)
+- No Redis caching needed
 
 ---
 
-## Phase 1: Project Setup & Database (Week 1)
+## Phase 1: Project Setup & Database (Day 1-2)
 
 ### 1.1 Initialize CodeIgniter 4 Project
 
 **Tasks:**
 - [ ] Create CodeIgniter 4 project using Composer
 - [ ] Configure environment variables (.env file)
-- [ ] Set up database connection
-- [ ] Install dependencies (JWT library, etc.)
+- [ ] Install Supabase PHP client library
 - [ ] Test basic server startup
 - [ ] Configure CORS for frontend connection
 
@@ -27,88 +34,111 @@ This plan outlines the implementation strategy for building the SchedulePro back
 ```bash
 cd schpro-backend
 composer create-project codeigniter4/appstarter .
-composer require firebase/php-jwt
+composer require supabase/supabase-php
 cp env .env
-# Edit .env with database credentials and JWT secret
+# Edit .env with Supabase credentials
 php spark serve
 ```
 
 **Files to configure:**
-- `.env` - Environment configuration
+- `.env` - Supabase URL, API keys, CORS settings
 - `app/Config/App.php` - Base URL, timezone
-- `app/Config/Database.php` - Database connection (reads from .env)
 - `app/Config/Cors.php` - CORS configuration for frontend
 
 ---
 
-### 1.2 Database Setup & Initial Migration
+### 1.2 Supabase Project Setup
 
 **Tasks:**
-- [ ] Create MySQL database
-- [ ] Create migration for `companies` table
-- [ ] Create migration for `people` table (unified authentication + resource)
-- [ ] Create migration for `vehicles` table
-- [ ] Create migration for `equipment` table
-- [ ] Create migration for `bookings` table
-- [ ] Create migrations for junction tables:
-  - `booking_people`
-  - `booking_vehicles`
-  - `booking_equipment`
-- [ ] Run migrations
-- [ ] Verify tables created successfully
+- [ ] Create Supabase project at https://supabase.com
+- [ ] Note project URL and API keys (anon, service_role)
+- [ ] Create database schema using Supabase SQL Editor
+- [ ] Run all CREATE TABLE statements from PRD Section 5
+- [ ] Verify RLS policies are enabled
+- [ ] Test authentication settings (enable email/password)
 
-**Commands:**
-```bash
-# Create database
-mysql -u root -p
-CREATE DATABASE schedulepro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-exit;
-
-# Run migrations
-php spark migrate
-php spark migrate:status
+**SQL to run in Supabase SQL Editor:**
+```sql
+-- Copy all CREATE TABLE statements from PRD Section 5
+-- Run companies table first
+-- Then people, vehicles, equipment, bookings
+-- Finally junction tables
+-- Each table includes RLS policies
 ```
 
+**Supabase Dashboard Steps:**
+1. Go to SQL Editor
+2. Paste schema SQL (from PRD Section 5)
+3. Run each table creation separately
+4. Go to Authentication > Settings
+5. Enable Email provider
+6. Disable email confirmation for MVP (or handle in code)
+7. Copy API keys to .env
+
 **Files to create:**
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreateCompaniesTable.php`
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreatePeopleTable.php`
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreateVehiclesTable.php`
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreateEquipmentTable.php`
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreateBookingsTable.php`
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreateBookingPeopleTable.php`
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreateBookingVehiclesTable.php`
-- `app/Database/Migrations/YYYY-MM-DD-HHMMSS_CreateBookingEquipmentTable.php`
+- `app/Config/Supabase.php` - Supabase configuration class
+- `app/Libraries/SupabaseClient.php` - Wrapper for supabase-php
 
 ---
 
-### 1.3 JWT Authentication Foundation
+### 1.3 Supabase Client Setup
 
 **Tasks:**
-- [ ] Create JWT helper functions (generate, validate, decode)
-- [ ] Create `AuthFilter.php` - Validate JWT token on protected routes
-- [ ] Create `CompanyFilter.php` - Ensure company isolation
-- [ ] Create `AdminFilter.php` - Restrict admin-only endpoints
-- [ ] Configure filters in `app/Config/Filters.php`
-- [ ] Test JWT generation and validation manually
+- [ ] Create SupabaseClient library wrapper
+- [ ] Initialize Supabase client with project credentials
+- [ ] Create helper methods for common operations
+- [ ] Test connection to Supabase
+- [ ] Create SupabaseAuthFilter to verify JWT tokens
 
 **Files to create:**
-- `app/Helpers/jwt_helper.php` - JWT utility functions
-- `app/Filters/AuthFilter.php`
-- `app/Filters/CompanyFilter.php`
-- `app/Filters/AdminFilter.php`
+- `app/Libraries/SupabaseClient.php`
+- `app/Filters/SupabaseAuthFilter.php`
+- `app/Config/Supabase.php`
+
+**SupabaseClient.php Example:**
+```php
+<?php
+namespace App\Libraries;
+
+use Supabase\CreateClient;
+
+class SupabaseClient
+{
+    protected $client;
+
+    public function __construct()
+    {
+        $this->client = CreateClient(
+            getenv('SUPABASE_URL'),
+            getenv('SUPABASE_SERVICE_ROLE_KEY')
+        );
+    }
+
+    public function auth()
+    {
+        return $this->client->auth;
+    }
+
+    public function from($table)
+    {
+        return $this->client->from($table);
+    }
+}
+```
 
 **Files to configure:**
-- `app/Config/Filters.php` - Register filters
+- `app/Config/Filters.php` - Register SupabaseAuthFilter
 
 ---
 
-### 1.4 Base Models & Entities
+### 1.4 Base Models
 
 **Tasks:**
-- [ ] Create `CompanyModel.php` with base CRUD
+- [ ] Create `CompanyModel.php` with Supabase queries
 - [ ] Create `Company` entity
-- [ ] Create base model trait for company scoping (optional)
-- [ ] Test company creation manually
+- [ ] Test company creation via Supabase client
+
+**Note:** Models now use SupabaseClient instead of CodeIgniter's query builder. RLS policies handle company scoping automatically.
 
 **Files to create:**
 - `app/Models/CompanyModel.php`
@@ -116,7 +146,7 @@ php spark migrate:status
 
 ---
 
-## Phase 2: Authentication System (Week 1-2)
+## Phase 2: Authentication System (Day 3-4)
 
 ### 2.1 Registration Endpoint
 
@@ -124,12 +154,20 @@ php spark migrate:status
 - [ ] Create `RegisterController.php`
 - [ ] Implement `POST /api/auth/register` endpoint
   - Validate company name, email, password
-  - Create company record
-  - Create admin person record (first user in company)
-  - Hash password using `password_hash()`
-  - Return success message
+  - Call Supabase Auth `signUp()` to create user
+  - Create company record in companies table
+  - Create person record linked to company and Supabase user_id
+  - Return session tokens
 - [ ] Add validation rules for registration
 - [ ] Test registration with Postman/Insomnia
+
+**Logic Flow:**
+1. Validate input (company_name, name, email, password)
+2. Call `$supabase->auth->signUp(['email' => $email, 'password' => $password])`
+3. Get user_id from Supabase response
+4. Create company record (INSERT into companies table)
+5. Create person record (INSERT into people table with user_id and company_id)
+6. Return success with session tokens
 
 **Request body:**
 ```json
@@ -147,8 +185,14 @@ php spark migrate:status
   "status": "success",
   "message": "Registration successful",
   "data": {
-    "company_id": 1,
-    "user_id": 1
+    "user": {
+      "id": "uuid",
+      "email": "john@acme.com"
+    },
+    "session": {
+      "access_token": "jwt_token",
+      "refresh_token": "jwt_refresh_token"
+    }
   }
 }
 ```
@@ -165,12 +209,19 @@ php spark migrate:status
 - [ ] Create `LoginController.php`
 - [ ] Implement `POST /api/auth/login` endpoint
   - Validate email and password
-  - Find person by email
-  - Verify password using `password_verify()`
-  - Generate JWT token with payload (sub, company_id, role, exp)
-  - Return token and user data
+  - Call Supabase Auth `signInWithPassword()`
+  - Get user_id from session
+  - Fetch person record from people table
+  - Return token and profile data
 - [ ] Add validation rules for login
 - [ ] Test login flow
+
+**Logic Flow:**
+1. Validate input (email, password)
+2. Call `$supabase->auth->signInWithPassword(['email' => $email, 'password' => $password])`
+3. Get user_id from Supabase session
+4. Query people table: `SELECT * FROM people WHERE user_id = $user_id`
+5. Return session tokens and profile
 
 **Request body:**
 ```json
@@ -186,13 +237,18 @@ php spark migrate:status
   "status": "success",
   "message": "Login successful",
   "data": {
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-    "person": {
-      "id": 1,
-      "company_id": 1,
+    "user": {
+      "id": "uuid",
+      "email": "john@acme.com"
+    },
+    "session": {
+      "access_token": "jwt_token",
+      "refresh_token": "jwt_refresh_token"
+    },
+    "profile": {
+      "id": "person_uuid",
       "name": "John Doe",
-      "email": "john@acme.com",
-      "role": "admin"
+      "company_id": "company_uuid"
     }
   }
 }
@@ -203,14 +259,15 @@ php spark migrate:status
 
 ---
 
-### 2.3 Logout Endpoint (Optional)
+### 2.3 Logout Endpoint
 
 **Tasks:**
 - [ ] Create `LogoutController.php`
-- [ ] Implement `POST /api/auth/logout` endpoint (stateless, client-side token removal)
+- [ ] Implement `POST /api/auth/logout` endpoint
+- [ ] Call Supabase Auth `signOut()`
 - [ ] Return success message
 
-**Note:** Since we're using stateless JWT, logout is primarily handled client-side by removing the token from storage. The backend endpoint is optional but can be used for logging/audit purposes.
+**Note:** Supabase handles token invalidation server-side.
 
 **Files to create:**
 - `app/Controllers/Auth/LogoutController.php`
@@ -252,64 +309,76 @@ php spark migrate:status
 
 ---
 
-## Phase 3: Company & Multi-Tenancy (Week 2)
+## Phase 3: Multi-Tenancy Testing (Day 5)
 
-### 3.1 Company Scoping in Base Model
+### 3.1 Understanding RLS-Based Isolation
 
-**Tasks:**
-- [ ] Create base model method to automatically filter by company_id
-- [ ] Ensure all queries respect company isolation
-- [ ] Add company_id to all insert operations automatically
+**Key Concept:** With Supabase RLS, company isolation is **automatic**. No manual filtering needed in application code.
 
-**Implementation approach:**
-- Override `beforeFind()` to add company_id filter
-- Override `beforeInsert()` to add company_id from JWT token
-- Store company_id in request during AuthFilter execution
+**How it works:**
+1. User logs in → Supabase issues JWT with `sub` (user_id)
+2. Request to API → SupabaseAuthFilter verifies JWT
+3. Database query → RLS policies automatically filter by company_id:
+   ```sql
+   -- RLS policy extracts user_id from JWT, looks up company_id
+   USING (company_id IN (
+       SELECT company_id FROM people WHERE user_id = auth.uid()
+   ))
+   ```
+4. Only rows matching user's company are returned
 
-**Files to modify:**
-- All entity models (PersonModel, VehicleModel, etc.)
+**No company scoping code needed in models!** Supabase handles it at database level.
 
 ---
 
-### 3.2 Company Filter Middleware
+### 3.2 Verify RLS Policies Work
 
 **Tasks:**
-- [ ] Implement `CompanyFilter.php` to extract company_id from JWT
-- [ ] Store company_id in request object or service for models to access
-- [ ] Apply filter to all protected API routes
-- [ ] Test company isolation with multiple companies
+- [ ] Test that RLS policies are active (via Supabase dashboard)
+- [ ] Verify auth.uid() function works in SQL queries
+- [ ] Test a simple SELECT query with authenticated Supabase client
 
-**Files to configure:**
-- `app/Config/Filters.php` - Apply CompanyFilter after AuthFilter
+**Test query in Supabase SQL Editor:**
+```sql
+-- This should only return rows for the authenticated user's company
+SELECT * FROM people WHERE is_deleted = false;
+```
 
 ---
 
 ### 3.3 Test Multi-Tenant Isolation
 
 **Tasks:**
-- [ ] Create two test companies
-- [ ] Create resources in each company
-- [ ] Verify users can only see their own company's data
-- [ ] Test cross-company access attempts (should fail)
+- [ ] Register two different companies via API
+- [ ] Login as user from company A
+- [ ] Create person in company A
+- [ ] Login as user from company B
+- [ ] Verify company B user cannot see company A's person
+- [ ] Verify cross-company access is prevented automatically
 
 ---
 
-## Phase 4: People Management (Week 2-3)
+## Phase 4: People Management (Day 6-7)
 
 ### 4.1 Person Model & Entity
 
 **Tasks:**
-- [ ] Create `PersonModel.php` with:
-  - CRUD operations
-  - Company scoping
+- [ ] Create `PersonModel.php` with Supabase client queries:
+  - CRUD operations using `$supabase->from('people')`
   - Soft delete support (`is_deleted` field)
-  - Password hashing in beforeInsert/beforeUpdate
-  - Query builder methods: `withDeleted()`, `onlyDeleted()`, `assignable()`
+  - Query methods: `withDeleted()`, `onlyDeleted()`, `assignable()`
+  - **No password handling** (Supabase Auth handles this)
+  - **No company_id filtering** (RLS handles this)
 - [ ] Create `Person` entity with:
   - Attribute casting (dates, booleans)
-  - Helper methods: `isAdmin()`, `isMember()`, `isAssignable()`, `isDeleted()`
-  - Password hashing mutator
+  - Helper methods: `isDeleted()`, `isAssignable()`
+  - **No role methods in MVP** (all users are admins)
 - [ ] Test person creation and retrieval
+
+**Note:** Simplified from original plan because:
+- Supabase Auth handles passwords
+- RLS handles company scoping
+- No roles in MVP
 
 **Files to create:**
 - `app/Models/PersonModel.php`
@@ -324,19 +393,27 @@ php spark migrate:status
 - [ ] Implement endpoints:
   - `GET /api/people` - List all people (with optional `?assignable=true` filter)
   - `GET /api/people/:id` - Get person by ID
-  - `POST /api/people` - Create new person (Admin only)
-  - `PUT /api/people/:id` - Update person (Admin only)
-  - `DELETE /api/people/:id` - Soft delete person (Admin only)
-  - `POST /api/people/:id/restore` - Undelete person (Admin only)
+  - `POST /api/people` - Create new person
+  - `PUT /api/people/:id` - Update person
+  - `DELETE /api/people/:id` - Soft delete person
+  - `POST /api/people/:id/undelete` - Undelete person
 - [ ] Add validation rules for person creation/update
-- [ ] Protect admin endpoints with AdminFilter
+- [ ] **No admin-only restrictions in MVP** (all authenticated users can CRUD)
 - [ ] Test all endpoints with Postman
+
+**Person Creation Logic:**
+1. Validate input (name, email, password)
+2. Call Supabase Auth `signUp()` to create auth user
+3. Get user_id from response
+4. Get company_id from authenticated user's profile
+5. INSERT person record into people table
+6. Return created person
 
 **Validation rules:**
 - Name: required
-- Email: required, valid email, unique within company
-- Password: required on create, min 8 characters
-- Role: required, in_list[admin,member]
+- Email: required, valid email, unique
+- Password: required on create (for Supabase Auth), min 8 characters
+- **No role field** (MVP assumes all are admins)
 
 **Files to create:**
 - `app/Controllers/PersonController.php`
@@ -589,13 +666,13 @@ php spark migrate:status
 
 ---
 
-## Phase 8: Conflict Detection (Week 5)
+## Phase 8: Conflict Detection (Day 12-13)
 
 ### 8.1 Conflict Detection Library
 
 **Tasks:**
 - [ ] Create `ConflictDetection.php` library
-- [ ] Implement `findConflicts($bookingData)` method:
+- [ ] Implement `findConflicts($bookingData)` method using Supabase queries:
   - Check for overlapping time ranges
   - Check each assigned person for conflicts
   - Check each assigned vehicle for conflicts
@@ -607,6 +684,19 @@ php spark migrate:status
   - `checkPersonConflicts($personIds, $start, $end, $excludeBookingId)`
   - `checkVehicleConflicts($vehicleIds, $start, $end, $excludeBookingId)`
   - `checkEquipmentConflicts($equipmentIds, $start, $end, $excludeBookingId)`
+
+**Conflict Query Example (Supabase):**
+```php
+// Check if person is already booked during this time
+$conflicts = $supabase
+    ->from('bookings')
+    ->select('*, booking_people(*)')
+    ->filter('booking_people.person_id', 'eq', $personId)
+    ->filter('start_time', 'lt', $endTime)
+    ->filter('end_time', 'gt', $startTime)
+    ->filter('is_deleted', 'eq', false)
+    ->execute();
+```
 
 **Files to create:**
 - `app/Libraries/ConflictDetection.php`
@@ -760,21 +850,28 @@ php spark test --coverage-html writable/coverage
 
 ---
 
-## Timeline Summary
+## Timeline Summary (Lean MVP with Supabase)
 
 | Phase | Duration | Focus |
 |-------|----------|-------|
-| 1 | Week 1 | Project setup, database, JWT foundation |
-| 2 | Week 1-2 | Authentication system (register, login, logout) |
-| 3 | Week 2 | Multi-tenancy & company isolation |
-| 4 | Week 2-3 | People management (CRUD, soft delete, assignable filter) |
-| 5 | Week 3 | Vehicle management (CRUD, soft delete) |
-| 6 | Week 3 | Equipment management (CRUD, soft delete) |
-| 7 | Week 4-5 | Booking management (CRUD, entity assignments, filters) |
-| 8 | Week 5 | Conflict detection (time overlap checking) |
-| 9 | Week 6 | Testing, seeders, polish, documentation |
+| 1 | Day 1-2 | Project setup, Supabase setup, client configuration |
+| 2 | Day 3-4 | Authentication system (register, login, logout via Supabase Auth) |
+| 3 | Day 5 | Multi-tenancy testing (RLS verification) |
+| 4 | Day 6-7 | People management (CRUD, soft delete) |
+| 5 | Day 8 | Vehicle management (CRUD, soft delete) |
+| 6 | Day 9 | Equipment management (CRUD, soft delete) |
+| 7 | Day 10-12 | Booking management (CRUD, entity assignments) |
+| 8 | Day 12-13 | Conflict detection (time overlap checking) |
+| 9 | Day 14 | Manual testing, bug fixes, documentation |
 
-**Total Estimated Time:** 6 weeks for backend MVP
+**Total Estimated Time:** 2-3 weeks for lean MVP (vs 6 weeks with custom auth/MySQL)
+
+**Why Faster?**
+- Supabase Auth eliminates custom JWT implementation
+- RLS policies eliminate manual company filtering code
+- No migration files needed (use Supabase SQL Editor)
+- No role-based authorization to implement (deferred to P1)
+- No Redis caching layer
 
 ---
 
@@ -829,7 +926,7 @@ php spark test --coverage-html writable/coverage
   "require": {
     "php": "^8.1",
     "codeigniter4/framework": "^4.4",
-    "firebase/php-jwt": "^6.0"
+    "supabase/supabase-php": "^1.0"
   },
   "require-dev": {
     "fakerphp/faker": "^1.9",
@@ -837,6 +934,10 @@ php spark test --coverage-html writable/coverage
   }
 }
 ```
+
+**Key Changes:**
+- **Removed**: `firebase/php-jwt` (Supabase Auth handles JWT)
+- **Added**: `supabase/supabase-php` (Supabase client library)
 
 ---
 
@@ -868,21 +969,11 @@ app.indexPage = ''
 app.defaultLocale = 'en'
 
 #--------------------------------------------------------------------
-# DATABASE
+# SUPABASE
 #--------------------------------------------------------------------
-database.default.hostname = localhost
-database.default.database = schedulepro
-database.default.username = root
-database.default.password =
-database.default.DBDriver = MySQLi
-database.default.port = 3306
-
-#--------------------------------------------------------------------
-# JWT AUTHENTICATION
-#--------------------------------------------------------------------
-jwt.secret = YOUR_SECRET_KEY_HERE_GENERATE_WITH_openssl_rand_base64_32
-jwt.expire = 86400
-jwt.algorithm = HS256
+SUPABASE_URL = https://your-project-id.supabase.co
+SUPABASE_ANON_KEY = your-anon-key-from-supabase-dashboard
+SUPABASE_SERVICE_ROLE_KEY = your-service-role-key-from-supabase-dashboard
 
 #--------------------------------------------------------------------
 # CORS
@@ -892,11 +983,16 @@ cors.allowedMethods = GET, POST, PUT, DELETE, OPTIONS
 cors.allowedHeaders = Content-Type, Authorization
 ```
 
-### Generate JWT Secret
+### Getting Supabase Credentials
 
-```bash
-openssl rand -base64 32
-```
+1. Go to https://supabase.com and create project
+2. In project dashboard, go to Settings > API
+3. Copy:
+   - Project URL → SUPABASE_URL
+   - anon/public key → SUPABASE_ANON_KEY
+   - service_role key → SUPABASE_SERVICE_ROLE_KEY (keep secret!)
+
+**Note:** No JWT secret needed - Supabase manages authentication tokens
 
 ---
 
