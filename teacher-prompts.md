@@ -55,8 +55,29 @@ I will start implement my backend api server for the kiwi car project. First rea
 
 - no need for Docker & docker compose
 - we just need a lean mvp now, make it simple and productive - we can just run the express server locally
-
+    
 update prd where needs to
 
 
 ---
+
+supabase pwd:
+M6Liu$f4eK2!b?4
+
+
+We have a react frontend @kiwicar-frontend and a backend api server planned (but not implemented yet). I want to add a standard user auth system in the easiest way - using supabase auth as some of my teammate is not technical. Do i need to build the backend api server first? or just get the supabase api key and work with frontend?
+
+
+1. simple email + password
+  2. yes, store user data in supabase table. Do you need to define table?
+  3. what kind of credentials do you need? just public key or also private key? do we put in a .env file in the frontend? Do we also need a .env file for credentials?
+
+since we've done user operations via supabase auth integration, update backend prd accordingly.
+
+Help me verify that the api endpoints defined in frontend prd is aligned with backend prd. If you find any misallignment, fix them. 
+
+Go with your best recommendation - doesn’t have to follow best engineering practice; find a balance point to give me a production grade mvp.
+
+
+
+Make sure your answers is correct as of Feb 2026.

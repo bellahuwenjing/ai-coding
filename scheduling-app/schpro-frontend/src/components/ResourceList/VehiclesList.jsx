@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import VehiclesCollection from '../../collections/VehiclesCollection'
 import Vehicle from '../../models/Vehicle'
 import { useBackboneCollection } from '../../hooks/useBackboneCollection'
-import { isAdmin } from '../../services/mockAuth'
 import Button from '../common/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
 import ErrorMessage from '../common/ErrorMessage'
@@ -14,7 +13,8 @@ export default function VehiclesList() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState(null)
   const [localError, setLocalError] = useState(null)
-  const userIsAdmin = isAdmin()
+  // MVP: All users are admins
+  const userIsAdmin = true
 
   // Fetch data on mount
   useEffect(() => {

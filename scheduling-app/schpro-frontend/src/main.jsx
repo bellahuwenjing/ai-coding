@@ -1,16 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import Backbone from 'backbone'
 import './index.css'
 import App from './App.jsx'
 
-// Import Backbone.sync override (must be imported before any models/collections)
-import './services/backboneSync.js'
-// Initialize mock authentication
-import './services/mockAuth.js'
-
-// Start Backbone history for routing (if using Backbone router)
-// Backbone.history.start({ pushState: true });
+// Note: Backbone models now use Supabase directly (sync overridden in each model)
+// No global Backbone.sync override or mock auth needed
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

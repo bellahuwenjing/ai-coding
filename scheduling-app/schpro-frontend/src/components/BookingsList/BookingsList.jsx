@@ -4,7 +4,6 @@ import PeopleCollection from '../../collections/PeopleCollection'
 import VehiclesCollection from '../../collections/VehiclesCollection'
 import EquipmentCollection from '../../collections/EquipmentCollection'
 import { useBackboneCollection } from '../../hooks/useBackboneCollection'
-import { isAdmin } from '../../services/mockAuth'
 import Button from '../common/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
 import ErrorMessage from '../common/ErrorMessage'
@@ -21,7 +20,8 @@ export default function BookingsList({ onEdit }) {
   const { models: equipment } = useBackboneCollection(equipmentCollection)
 
   const [localError, setLocalError] = useState(null)
-  const userIsAdmin = isAdmin()
+  // MVP: All users are admins
+  const userIsAdmin = true
 
   // Fetch all data on mount
   useEffect(() => {
