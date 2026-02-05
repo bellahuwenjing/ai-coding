@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **SchedulePro** - A multi-tenant resource scheduling application for managing people, vehicles, and equipment bookings.
 
-- **Backend**: CodeIgniter 4 + MySQL (RESTful API with JWT auth)
+- **Backend**: Express.js + Supabase (RESTful API with Supabase Auth)
 - **Frontend**: React + Vite + Backbone.js (hybrid architecture)
 - **Landing Page**: Next.js 16 (marketing site)
 - **Status**: Planning phase - backend and frontend not yet initialized
@@ -21,15 +21,13 @@ npm run build            # Production build with Turbopack
 npm run lint             # Run ESLint
 ```
 
-### Backend (CodeIgniter 4) - When Initialized
+### Backend (Express.js + Supabase) - When Initialized
 ```bash
 cd schpro-backend
-php spark serve          # Start server (http://localhost:8080)
-php spark migrate        # Run migrations
-php spark migrate:status # Check migration status
-php spark db:seed DatabaseSeeder  # Seed database
-php spark routes         # View all routes
-php spark test           # Run tests
+npm run dev              # Start server with nodemon (http://localhost:3000)
+npm start                # Start server (production)
+npm test                 # Run tests
+node src/utils/seed.js   # Seed database (if seeder created)
 ```
 
 ### Frontend (React + Vite + Backbone) - When Initialized
@@ -79,6 +77,23 @@ API ←→ Backbone Models/Collections ←→ React Hooks ←→ React Component
 - `src/models/` - Backbone models (Person, Vehicle, Equipment, Booking)
 - `src/collections/` - Backbone collections with company scoping
 
+### Authentication Architecture
+
+**Backend wraps Supabase Auth** instead of frontend calling Supabase directly.
+
+**Why?** Registration requires creating 3 related records atomically:
+1. User in Supabase Auth
+2. Company record
+3. Person record (links user to company)
+
+**Approach:**
+- Frontend calls `POST /api/auth/register` (one call)
+- Backend handles: create user → create company → create person
+- If any step fails, backend handles cleanup
+- **Benefits**: Atomic registration, simpler frontend, consistent data
+
+**Trade-off**: Extra hop (frontend → backend → Supabase) but worth it for complex registration flow.
+
 ### Soft Delete Pattern
 
 All entities use `is_deleted` flag (0 = active, 1 = deleted):
@@ -87,12 +102,34 @@ All entities use `is_deleted` flag (0 = active, 1 = deleted):
 - Undelete functionality sets `is_deleted = 0, deleted_at = NULL`
 - Admin-only feature
 
+### Row Level Security (RLS) - DISABLED for MVP
+
+**Status**: RLS is **disabled** on all Supabase tables.
+
+**Why Disabled:**
+- Original RLS policies caused infinite recursion (self-referencing checks)
+- We use `SERVICE_ROLE_KEY` which bypasses RLS anyway
+- Backend manually filters by `company_id` in every query
+
+**Security Model:**
+```javascript
+// Every query must filter by company_id
+await supabase
+  .from('people')
+  .select('*')
+  .eq('company_id', req.user.company_id)  // ← CRITICAL!
+```
+
+**Auth middleware** verifies JWT and attaches `company_id` to `req.user` for all protected routes.
+
+**Important:** Never query without filtering by `company_id` - this would return data from all companies!
+
 ### Conflict Detection
 
 **Purpose**: Prevent double-booking resources during overlapping time periods.
 
 **Implementation** (backend):
-- `Libraries/ConflictDetection.php` - Checks time overlaps for each entity type
+- `services/conflict.service.js` - Checks time overlaps for each entity type
 - Separate checks for people, vehicles, equipment
 - Returns 422 with conflict details if overlaps found
 - MVP: User cannot proceed if conflicts exist (no override)
@@ -147,41 +184,41 @@ All entities use `is_deleted` flag (0 = active, 1 = deleted):
 
 ### Backend .env (when initialized)
 ```env
-CI_ENVIRONMENT = development
-app.baseURL = 'http://localhost:8080/'
-database.default.hostname = localhost
-database.default.database = schedulepro
-database.default.username = root
-database.default.password = your_password
-jwt.secret = generate_with_openssl_rand_base64_32
-jwt.expire = 86400
-cors.allowedOrigins = http://localhost:5173
+NODE_ENV=development
+PORT=3000
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+FRONTEND_URL=http://localhost:5173
 ```
 
 ### Frontend .env (when initialized)
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api
-VITE_DEV_MODE=true
+VITE_API_BASE_URL=http://localhost:3000/api
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 VITE_APP_NAME=SchedulePro
 ```
 
-## Database Schema
+## Database Schema (Supabase PostgreSQL)
 
-**8 Core Tables**:
+**Core Tables** (managed in Supabase):
 1. `companies` - Tenant isolation
-2. `users` - Authentication and authorization
-3. `people` - Human resources
-4. `vehicles` - Fleet management
-5. `equipment` - Tool/equipment tracking
-6. `bookings` - Time-based assignments
-7. `booking_people` - Many-to-many junction
-8. `booking_vehicles` - Many-to-many junction
-9. `booking_equipment` - Many-to-many junction
+2. `people` - Human resources (links to Supabase Auth via `user_id`)
+3. `vehicles` - Fleet management
+4. `equipment` - Tool/equipment tracking
+5. `bookings` - Time-based assignments
+6. `booking_people` - Many-to-many junction
+7. `booking_vehicles` - Many-to-many junction
+8. `booking_equipment` - Many-to-many junction
+
+**Authentication**: Handled by Supabase Auth (`auth.users` table)
 
 All tables include:
-- `company_id` for multi-tenancy
-- `is_deleted` for soft delete
-- `created_at`, `updated_at`, `deleted_at` timestamps
+- `company_id` UUID for multi-tenancy
+- `is_deleted` boolean for soft delete
+- `created_at`, `updated_at`, `deleted_at` timestamps (PostgreSQL TIMESTAMPTZ)
+- **Row Level Security (RLS) policies** for automatic company isolation
 
 ## API Endpoints Structure
 
@@ -207,30 +244,32 @@ All tables include:
 
 **Current Status**: Planning complete, awaiting initialization
 
-**Phase 1**: Project setup (1-2 days)
-- Initialize backend with CodeIgniter 4
-- Initialize frontend with Vite + React
-- Create database and run migrations
+**Phase 1**: Project setup (Day 1)
+- Initialize backend with Express.js + Supabase
+- Initialize frontend with Vite + React + Backbone
+- Create database schema in Supabase
 
-**Phase 2**: Authentication (Week 1-2)
-- JWT token generation and validation
-- Register/login endpoints
-- Protected route middleware
+**Phase 2**: Authentication (Day 2-3)
+- Supabase Auth integration (register, login, logout)
+- JWT token verification middleware
+- Protected route setup
 
-**Phase 3**: Resource Management (Week 2-5)
+**Phase 3**: Resource Management (Day 4-6)
 - CRUD for people, vehicles, equipment
 - Soft delete and undelete
-- Admin permission enforcement
+- No authorization needed in MVP (all users are admins)
 
-**Phase 4**: Booking System (Week 5-7)
+**Phase 4**: Booking System (Day 7-9)
 - Booking CRUD with multi-entity assignment
 - Conflict detection
-- Booking list views
+- Booking list views and filters
 
-**Phase 5**: Testing & Polish (Week 8+)
-- Unit and integration tests
-- Database seeders
-- UI refinements
+**Phase 5**: Testing & Polish (Day 10-11)
+- Manual testing
+- Bug fixes
+- Documentation
+
+**Total MVP Time**: 1.5-2 weeks
 
 ## Important Notes
 
@@ -240,3 +279,19 @@ All tables include:
 - Follow initialization checklist in `docs/initialization-checklist.md` when setting up backend/frontend
 - User prefers exact documentation of prompts - maintain `prompt-history.md` with user's exact words
 - Reference `workflow-conventions.md` for detailed documentation and session management standards
+
+## Hosting Options
+
+**Backend (Express.js)**:
+- **Local Development**: `npm run dev` on `http://localhost:3000`
+- **Production Options**:
+  - Railway (recommended - always-on, no cold starts)
+  - Render (free tier with sleep on inactivity)
+  - Vercel (serverless functions)
+  - Fly.io (global edge deployment)
+
+**Database**: Supabase cloud (free tier includes authentication + PostgreSQL)
+
+**Frontend**: Vercel (recommended for React + Vite)
+
+**Landing Page**: Already deployed or can deploy to Vercel
