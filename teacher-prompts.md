@@ -58,5 +58,38 @@ I will start implement my backend api server for the kiwi car project. First rea
 
 update prd where needs to
 
+---
+
+supabase project pwd: M6Liu$f4eK2!b?4
+
+We have a react frontend @kiwicar-frontend and a backend api server planned (but not implemented yet). I want to add a standard user auth system in the easiest way - using supabase auth as some of my teammate is not technical. Do i need to build the backend api server first? or just get the supabase api key and work with frontend?
+
+1. simple email + password
+2. yes, store user data in supabase table. Do you need to define table?
+3. what kind of credentials do you need? just public key or also private key? do we put in a .env file in the frontend? Do we also need a .env file for credentials?
+
+since we've done user operations via supabase auth integration, update backend prd accordingly.
+
+Help me verify that the api endpoints defined in frontend prd is aligned with backend prd. If you find any misallignment, fix them.
+
+Go with your best recommendation - doesn’t have to follow best engineering practice; find a balance point to give me a production grade mvp.
+
+Make sure your answers is correct as of Feb 2026.
 
 ---
+
+supabase project pwd 93lHLcr1cVLjpQWs
+
+I have a lot of pending changes in git. e.g. backend/.npm-cache/... help me generate a proper gitignore for this project.
+
+I'm deploying my backend to render.com and it's asking for my build command and start command. What are they?
+
+I have a backend api server at kiwicar-backend and a frontend nextjs app at kiwicar-frontend. I've deployed my frontend onto vercel and plan to deploy backend onto render.com. How do I configure env vars & cross origin?
+
+Did you suggest me to use render cli and use the render.yml? I’m not using cli - I’m using their web dashboard
+
+now tell me what env var I should add to my deployed frontend on Vercel. My deployed backend url is https://demo-project-123.onrender.com/
+
+help me verify that frontend is using env vars to call the correct backend.
+
+i have verified my deployed backend endpoint works at .... and i've set env var VITE_API_BASE_URL = ...for my deployed frontend.
