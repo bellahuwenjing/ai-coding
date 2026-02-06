@@ -1,4 +1,4 @@
-const supabase = require('../services/supabase.service');
+const { supabaseAuth, supabaseAdmin } = require('../services/supabase.service');
 
 /**
  * Register new company and admin user
@@ -24,8 +24,8 @@ exports.register = async (req, res) => {
       });
     }
 
-    // 1. Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // 1. Create user in Supabase Auth (use ANON_KEY client)
+    const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
       email,
       password,
       options: {
@@ -45,13 +45,13 @@ exports.register = async (req, res) => {
 
     const userId = authData.user.id;
 
-    // 2. Create company
+    // 2. Create company (use SERVICE_ROLE_KEY client to bypass RLS)
     const companySlug = company_name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
 
-    const { data: company, error: companyError } = await supabase
+    const { data: company, error: companyError } = await supabaseAdmin
       .from('companies')
       .insert({
         name: company_name,
@@ -70,8 +70,8 @@ exports.register = async (req, res) => {
       });
     }
 
-    // 3. Create person record (links user to company)
-    const { data: person, error: personError } = await supabase
+    // 3. Create person record (links user to company, use SERVICE_ROLE_KEY)
+    const { data: person, error: personError } = await supabaseAdmin
       .from('people')
       .insert({
         company_id: company.id,
@@ -138,8 +138,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    // 1. Sign in with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    // 1. Sign in with Supabase Auth (use ANON_KEY client)
+    const { data: authData, error: authError } = await supabaseAuth.auth.signInWithPassword({
       email,
       password
     });
@@ -154,8 +154,8 @@ exports.login = async (req, res) => {
 
     const userId = authData.user.id;
 
-    // 2. Get person record (includes company_id)
-    const { data: person, error: personError } = await supabase
+    // 2. Get person record (includes company_id, use SERVICE_ROLE_KEY)
+    const { data: person, error: personError } = await supabaseAdmin
       .from('people')
       .select('id, name, email, company_id, companies(name)')
       .eq('user_id', userId)
@@ -218,8 +218,8 @@ exports.logout = async (req, res) => {
       });
     }
 
-    // Sign out from Supabase (invalidates the token)
-    const { error } = await supabase.auth.signOut();
+    // Sign out from Supabase (invalidates the token, use ANON_KEY client)
+    const { error } = await supabaseAuth.auth.signOut();
 
     if (error) {
       console.error('Logout error:', error);
@@ -252,8 +252,8 @@ exports.getCurrentUser = async (req, res) => {
     // User info is attached by auth middleware
     const userId = req.user.id;
 
-    // Get person record with company info
-    const { data: person, error: personError } = await supabase
+    // Get person record with company info (use SERVICE_ROLE_KEY)
+    const { data: person, error: personError } = await supabaseAdmin
       .from('people')
       .select('id, name, email, phone, company_id, companies(id, name, slug)')
       .eq('user_id', userId)

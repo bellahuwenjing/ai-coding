@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { getCurrentUser } from './services/mockAuth'
+import authService from './services/auth'
+import Login from './components/Auth/Login'
+import Register from './components/Auth/Register'
 import PeopleList from './components/ResourceList/PeopleList'
 import VehiclesList from './components/ResourceList/VehiclesList'
 import EquipmentList from './components/ResourceList/EquipmentList'
@@ -9,7 +11,23 @@ import BookingForm from './components/BookingForm/BookingForm'
 function App() {
   const [currentView, setCurrentView] = useState('people')
   const [selectedBooking, setSelectedBooking] = useState(null)
-  const currentUser = getCurrentUser()
+  const [showRegister, setShowRegister] = useState(false)
+
+  const isAuthenticated = authService.isAuthenticated()
+  const currentUser = authService.getCurrentUser()
+
+  const handleLogout = async () => {
+    await authService.logout()
+    window.location.reload()
+  }
+
+  // Show Login or Register if not authenticated
+  if (!isAuthenticated) {
+    if (showRegister) {
+      return <Register onSwitchToLogin={() => setShowRegister(false)} />
+    }
+    return <Login onSwitchToRegister={() => setShowRegister(true)} />
+  }
 
   const renderView = () => {
     switch (currentView) {
@@ -49,7 +67,13 @@ function App() {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">SchedulePro</h1>
             <div className="flex items-center space-x-4">
-              <span className="text-sm">{currentUser.name} ({currentUser.role})</span>
+              <span className="text-sm">{currentUser?.name}</span>
+              <button
+                onClick={handleLogout}
+                className="text-sm bg-primary-700 hover:bg-primary-800 px-3 py-1 rounded"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

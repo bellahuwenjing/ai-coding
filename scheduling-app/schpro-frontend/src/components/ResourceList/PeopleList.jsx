@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import PeopleCollection from '../../collections/PeopleCollection'
 import Person from '../../models/Person'
 import { useBackboneCollection } from '../../hooks/useBackboneCollection'
-import { isAdmin } from '../../services/mockAuth'
+import authService from '../../services/auth'
 import Button from '../common/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
 import ErrorMessage from '../common/ErrorMessage'
@@ -14,7 +14,7 @@ export default function PeopleList() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingPerson, setEditingPerson] = useState(null)
   const [localError, setLocalError] = useState(null)
-  const userIsAdmin = isAdmin()
+  const userIsAdmin = authService.isAdmin()
 
   // Fetch data on mount
   useEffect(() => {

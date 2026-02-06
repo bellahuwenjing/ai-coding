@@ -56,8 +56,8 @@ export function logout() {
   localStorage.removeItem('current_user');
 }
 
-// Auto-initialize on import
-initMockAuth();
+// Auto-initialize on import (DISABLED - using real auth now)
+// initMockAuth();
 
 export default {
   initMockAuth,

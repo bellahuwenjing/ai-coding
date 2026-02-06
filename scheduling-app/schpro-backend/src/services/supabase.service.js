@@ -3,14 +3,25 @@ require('dotenv').config();
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Supabase client
+// Get environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
   throw new Error('Missing Supabase environment variables. Check your .env file.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Client for auth operations (uses ANON_KEY)
+// Use this for: signUp, signInWithPassword, signOut, getUser
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
 
-module.exports = supabase;
+// Client for database operations (uses SERVICE_ROLE_KEY to bypass RLS)
+// Use this for: database inserts, updates, deletes
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+module.exports = {
+  supabaseAuth,   // For auth operations
+  supabaseAdmin,  // For database operations
+  supabase: supabaseAdmin  // Default export for backward compatibility
+};

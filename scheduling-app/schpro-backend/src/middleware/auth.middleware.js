@@ -1,4 +1,4 @@
-const supabase = require('../services/supabase.service');
+const { supabaseAuth, supabaseAdmin } = require('../services/supabase.service');
 
 /**
  * Middleware to verify Supabase JWT token
@@ -18,8 +18,8 @@ const verifyToken = async (req, res, next) => {
 
     const token = authHeader.replace('Bearer ', '');
 
-    // Verify token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Verify token with Supabase (use ANON_KEY client)
+    const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({
@@ -31,8 +31,8 @@ const verifyToken = async (req, res, next) => {
     // Attach user to request object
     req.user = user;
 
-    // Get person record to attach company_id (useful for queries)
-    const { data: person } = await supabase
+    // Get person record to attach company_id (useful for queries, use SERVICE_ROLE_KEY)
+    const { data: person } = await supabaseAdmin
       .from('people')
       .select('id, company_id')
       .eq('user_id', user.id)
