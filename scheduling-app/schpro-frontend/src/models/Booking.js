@@ -1,7 +1,7 @@
 import Backbone from 'backbone';
 
 const Booking = Backbone.Model.extend({
-  urlRoot: '/api/bookings',
+  urlRoot: '/bookings',
 
   defaults: {
     title: '',

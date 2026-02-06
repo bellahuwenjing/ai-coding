@@ -7,7 +7,6 @@ export default function PersonForm({ person, onClose }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'member',
     phone: '',
     skills: [],
   })
@@ -24,7 +23,6 @@ export default function PersonForm({ person, onClose }) {
       setFormData({
         name: person.get('name') || '',
         email: person.get('email') || '',
-        role: person.get('role') || 'member',
         phone: person.get('phone') || '',
         skills: person.get('skills') || [],
       })
@@ -139,22 +137,6 @@ export default function PersonForm({ person, onClose }) {
               placeholder="Enter email"
             />
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-          </div>
-
-          {/* Role */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role *
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
-            </select>
           </div>
 
           {/* Phone */}

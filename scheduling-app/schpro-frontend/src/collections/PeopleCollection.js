@@ -3,7 +3,12 @@ import Person from '../models/Person';
 
 const PeopleCollection = Backbone.Collection.extend({
   model: Person,
-  url: '/api/people',
+  url: '/people',
+
+  // Parse API response to extract data array
+  parse(response) {
+    return response.data || response;
+  },
 
   // Get only assignable people (members, not deleted)
   getAssignable() {

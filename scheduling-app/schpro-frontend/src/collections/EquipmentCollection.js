@@ -3,7 +3,12 @@ import Equipment from '../models/Equipment';
 
 const EquipmentCollection = Backbone.Collection.extend({
   model: Equipment,
-  url: '/api/equipment',
+  url: '/equipment',
+
+  // Parse API response to extract data array
+  parse(response) {
+    return response.data || response;
+  },
 
   // Get only active (not deleted) equipment
   getActive() {

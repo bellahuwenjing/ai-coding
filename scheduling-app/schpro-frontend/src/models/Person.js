@@ -1,28 +1,31 @@
 import Backbone from 'backbone';
 
 const Person = Backbone.Model.extend({
-  urlRoot: '/api/people',
+  urlRoot: '/people',
 
   defaults: {
     name: '',
     email: '',
-    role: 'member',
     phone: '',
     skills: [],
+    certifications: [],
+    hourly_rate: null,
     is_deleted: false,
   },
 
   // Helper methods
   isAdmin() {
-    return this.get('role') === 'admin';
+    // For MVP: all authenticated users are admin
+    return true;
   },
 
   isMember() {
-    return this.get('role') === 'member';
+    // For MVP: consider everyone a member
+    return true;
   },
 
   isAssignable() {
-    return this.isMember() && !this.get('is_deleted');
+    return !this.get('is_deleted');
   },
 
   isDeleted() {

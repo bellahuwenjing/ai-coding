@@ -3,7 +3,12 @@ import Booking from '../models/Booking';
 
 const BookingsCollection = Backbone.Collection.extend({
   model: Booking,
-  url: '/api/bookings',
+  url: '/bookings',
+
+  // Parse API response to extract data array
+  parse(response) {
+    return response.data || response;
+  },
 
   // Get only active (not deleted) bookings
   getActive() {

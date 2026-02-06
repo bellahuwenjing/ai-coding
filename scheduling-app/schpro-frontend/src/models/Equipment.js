@@ -1,7 +1,7 @@
 import Backbone from 'backbone';
 
 const Equipment = Backbone.Model.extend({
-  urlRoot: '/api/equipment',
+  urlRoot: '/equipment',
 
   defaults: {
     name: '',

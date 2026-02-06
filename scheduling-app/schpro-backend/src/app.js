@@ -6,6 +6,7 @@ const app = express();
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
+const peopleRoutes = require('./routes/people.routes');
 
 // Middleware
 app.use(cors({
@@ -17,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/people', peopleRoutes);
+app.use('/api/people', peopleRoutes);
 // app.use('/api/vehicles', vehiclesRoutes);
 // app.use('/api/equipment', equipmentRoutes);
 // app.use('/api/bookings', bookingsRoutes);

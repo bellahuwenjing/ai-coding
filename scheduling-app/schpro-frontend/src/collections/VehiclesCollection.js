@@ -3,7 +3,12 @@ import Vehicle from '../models/Vehicle';
 
 const VehiclesCollection = Backbone.Collection.extend({
   model: Vehicle,
-  url: '/api/vehicles',
+  url: '/vehicles',
+
+  // Parse API response to extract data array
+  parse(response) {
+    return response.data || response;
+  },
 
   // Get only active (not deleted) vehicles
   getActive() {
