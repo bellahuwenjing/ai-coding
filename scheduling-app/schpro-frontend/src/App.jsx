@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { logout, onAuthStateChange } from './services/auth'
-import { supabase } from './config/supabase'
+import { getCurrentSession, logout, onAuthStateChange } from './services/auth'
 import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
 import PeopleList from './components/ResourceList/PeopleList'
@@ -16,63 +15,43 @@ function App() {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [authView, setAuthView] = useState('login') // 'login' or 'register'
 
-  // Listen for auth changes on mount
+  // Load current user on mount and listen for auth changes
   useEffect(() => {
-    // Check if there's already a session
-    checkInitialSession()
+    loadUser()
 
     // Listen for auth state changes (email confirmation, sign in, etc.)
     const unsubscribe = onAuthStateChange((event, data) => {
       console.log('Auth state changed:', event, data)
-      if (event === 'SIGNED_IN') {
-        if (data?.person) {
-          setCurrentUser(data.person)
-        } else {
-          console.warn('Person data not available after sign in')
-          setCurrentUser(null)
-        }
+      if (event === 'SIGNED_IN' && data?.person) {
+        setCurrentUser(data.person)
         setIsLoadingUser(false)
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null)
         setAuthView('login')
-        setIsLoadingUser(false)
       }
     })
 
     return () => unsubscribe()
   }, [])
 
-  // Check for existing session on mount - SKIP person fetch
-  async function checkInitialSession() {
+  async function loadUser() {
     setIsLoadingUser(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (session) {
-        console.log('Session found on refresh')
-        // Create minimal user object to keep them logged in
-        // Person data will be fetched later or we'll work without it
-        setCurrentUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.email.split('@')[0], // Temp name from email
-          role: 'member' // Default role
-        })
-        setIsLoadingUser(false)
-      } else {
-        // No session - show login
-        setIsLoadingUser(false)
+      const session = await getCurrentSession()
+      if (session?.person) {
+        setCurrentUser(session.person)
       }
     } catch (error) {
-      console.error('Failed to check session:', error)
+      console.error('Failed to load user session:', error)
+    } finally {
       setIsLoadingUser(false)
     }
   }
 
   // Handle successful login/register
   const handleAuthSuccess = async (result) => {
-    console.log('Auth success')
-    // Auth state change handler will set the user
+    console.log('Auth success, loading user...')
+    await loadUser()
   }
 
   // Handle logout

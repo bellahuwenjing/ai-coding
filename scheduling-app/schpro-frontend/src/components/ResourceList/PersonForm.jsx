@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import Person from '../../models/Person'
 import Button from '../common/Button'
 import ErrorMessage from '../common/ErrorMessage'
-import { getCurrentSession } from '../../services/auth'
 
 export default function PersonForm({ person, onClose }) {
   const [formData, setFormData] = useState({
@@ -71,16 +70,8 @@ export default function PersonForm({ person, onClose }) {
         model = person
         model.set(formData)
       } else {
-        // Create new person - get company_id from current session
-        const session = await getCurrentSession()
-        if (!session?.person?.company_id) {
-          throw new Error('No company_id found in session')
-        }
-
-        model = new Person({
-          ...formData,
-          company_id: session.person.company_id
-        })
+        // Create new person
+        model = new Person(formData)
       }
 
       // Validate
