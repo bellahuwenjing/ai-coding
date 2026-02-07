@@ -82,9 +82,17 @@ supabase project pwd 93lHLcr1cVLjpQWs
 
 I have a lot of pending changes in git. e.g. backend/.npm-cache/... help me generate a proper gitignore for this project.
 
+continue implement my backend server based on prd at ... last time you hada head start, continue - progress was documented into the prd.
+
+proceed with supabase tables & rls
+
 I'm deploying my backend to render.com and it's asking for my build command and start command. What are they?
 
+what kind of env vars do we need to set up to start the backend?
+
 I have a backend api server at kiwicar-backend and a frontend nextjs app at kiwicar-frontend. I've deployed my frontend onto vercel and plan to deploy backend onto render.com. How do I configure env vars & cross origin?
+
+I'll deploy my backend onto Render now. What env vars do I need to specify to it during deployment?
 
 Did you suggest me to use render cli and use the render.yml? I’m not using cli - I’m using their web dashboard
 
