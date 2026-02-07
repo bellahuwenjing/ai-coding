@@ -59,34 +59,6 @@ function App() {
     }
   }
 
-  // Show loading state while checking auth
-  if (isLoadingUser) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    )
-  }
-
-  // Show login/register if not authenticated
-  if (!currentUser) {
-    if (authView === 'register') {
-      return (
-        <Register
-          onSuccess={handleAuthSuccess}
-          onSwitchToLogin={() => setAuthView('login')}
-        />
-      )
-    }
-    return (
-      <Login
-        onSuccess={handleAuthSuccess}
-        onSwitchToRegister={() => setAuthView('register')}
-      />
-    )
-  }
-
-  // Main app (authenticated)
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}

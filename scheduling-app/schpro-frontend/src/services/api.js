@@ -1,7 +1,9 @@
 import axios from 'axios';
-import mockApi from './mockData';
 
 const USE_MOCK_API = false; // Toggle to switch between mock and real API
+
+// Mock API stub (not used when USE_MOCK_API is false)
+const mockApi = {};
 
 // Create Axios instance with base configuration
 const api = axios.create({
