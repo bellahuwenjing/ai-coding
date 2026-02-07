@@ -94,10 +94,17 @@ I have a backend api server at kiwicar-backend and a frontend nextjs app at kiwi
 
 I'll deploy my backend onto Render now. What env vars do I need to specify to it during deployment?
 
+I'm testing this backend server locally. /health endpoint succeeded; /api failed with error message {
+"status": "error",
+"message": "Route not found"
+}
+
+I want my frontend (schpro-frontend) to talk to my backend api server (schpro-backend). How should i modify my .env?
+
 Did you suggest me to use render cli and use the render.yml? I’m not using cli - I’m using their web dashboard
 
 now tell me what env var I should add to my deployed frontend on Vercel. My deployed backend url is https://demo-project-123.onrender.com/
 
-help me verify that frontend is using env vars to call the correct backend.
+** help me verify that frontend is using env vars to call the correct backend.
 
 i have verified my deployed backend endpoint works at .... and i've set env var VITE_API_BASE_URL = ...for my deployed frontend.

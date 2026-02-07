@@ -99,6 +99,59 @@ Implement the following plan: [plan text]
 
 ---
 
+## PRD & Planning Conventions
+
+### Environment Variables in PRDs
+
+**Purpose:** Document all configuration requirements during the PRD phase, before implementation begins.
+
+**Always include in PRDs:**
+1. **Environment variable specifications** for both backend and frontend
+2. **Configuration file templates** (.env examples)
+3. **Security classifications** (public vs secret)
+4. **Deployment considerations** (local vs production differences)
+
+**Format - Add this section to PRDs:**
+```markdown
+## Environment Configuration
+
+### Backend Environment Variables (.env)
+| Variable | Description | Example | Required | Secret |
+|----------|-------------|---------|----------|--------|
+| `VARIABLE_NAME` | Purpose | `example-value` | Yes/No | Yes/No |
+
+### Frontend Environment Variables (.env)
+| Variable | Description | Example | Required |
+|----------|-------------|---------|----------|
+| `VITE_VARIABLE_NAME` | Purpose | `example-value` | Yes/No |
+
+### .env Template Files
+Provide starter templates for:
+- `.env.example` (backend)
+- `.env.example` (frontend)
+```
+
+**Suggested prompt for PRD creation:**
+```
+Create a PRD for [feature/project name]. Include:
+1. Technical requirements and architecture
+2. API endpoints and data models
+3. Environment variables needed for:
+   - Local development
+   - Production deployment
+   - Third-party integrations
+4. Configuration file examples (.env templates)
+5. Security considerations for secrets
+```
+
+**Benefits:**
+- Smooth deployment process (no missing config surprises)
+- Clear security boundaries (know what's secret vs public)
+- Better local development setup instructions
+- Easier onboarding for new developers
+
+---
+
 ## Plan Mode Conventions
 
 ### Before Entering Plan Mode
@@ -169,6 +222,34 @@ _(To be added as conventions are established during development)_
 - Prefer specialized tools over bash commands for file operations
 - Use Read instead of cat, Edit instead of sed, Write instead of echo
 - Make parallel tool calls when operations are independent
+
+### Development Server Management
+
+**Server Startup Preference:**
+- **Never start development servers in background** (frontend or backend)
+- User prefers to start servers manually in their own terminal windows
+- Provides better visibility and control over running processes
+- Avoids confusion with multiple server instances
+
+**When helping with server issues:**
+- Provide commands for user to run in their terminal
+- Help diagnose issues by reading logs/output
+- Kill stray processes if needed, but let user restart servers themselves
+
+**Example - Don't do this:**
+```bash
+# ❌ Don't start servers in background
+cd schpro-backend && npm start  # run_in_background: true
+```
+
+**Example - Do this instead:**
+```markdown
+Run this command in your terminal:
+\`\`\`bash
+cd schpro-backend
+npm start
+\`\`\`
+```
 
 ---
 
