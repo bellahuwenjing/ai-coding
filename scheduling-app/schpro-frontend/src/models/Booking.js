@@ -93,12 +93,19 @@ const Booking = Backbone.Model.extend({
     const attrs = this.toJSON()
 
     // Extract arrays before inserting booking
-    const { people, vehicles, equipment, ...bookingData } = attrs
+    const { people, vehicles, equipment, id, ...bookingData } = attrs
+
+    // Filter out null/undefined values
+    const insertData = Object.fromEntries(
+      Object.entries(bookingData).filter(([_, value]) =>
+        value !== null && value !== undefined
+      )
+    )
 
     // Insert booking
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .insert(bookingData)
+      .insert(insertData)
       .select()
       .single()
 

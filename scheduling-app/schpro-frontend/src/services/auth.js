@@ -92,27 +92,10 @@ export async function login(email, password) {
     if (error) throw error
     if (!data.session) throw new Error('Login failed')
 
-    // Fetch person record with company info
-    const { data: person, error: personError } = await supabase
-      .from('people')
-      .select(`
-        *,
-        companies (
-          id,
-          name,
-          slug,
-          settings
-        )
-      `)
-      .eq('user_id', data.user.id)
-      .single()
-
-    if (personError) throw personError
-
+    // Don't fetch person here - let auth state change handler do it
     return {
       user: data.user,
       session: data.session,
-      person,
     }
   } catch (error) {
     console.error('Login error:', error)
@@ -139,34 +122,51 @@ export async function logout() {
  */
 export async function getCurrentSession() {
   try {
+    console.log('[getCurrentSession] Starting...')
+
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    if (sessionError) throw sessionError
-    if (!session) return null
+    console.log('[getCurrentSession] Session result:', { hasSession: !!session, error: sessionError?.message })
 
-    // Fetch person record with company info
+    if (sessionError) {
+      console.warn('Session error:', sessionError.message)
+      return null
+    }
+
+    if (!session) {
+      console.log('[getCurrentSession] No session found')
+      return null
+    }
+
+    console.log('[getCurrentSession] Session found, user ID:', session.user.id)
+    console.log('[getCurrentSession] Starting person fetch...')
+
+    const startTime = Date.now()
+
     const { data: person, error: personError } = await supabase
       .from('people')
-      .select(`
-        *,
-        companies (
-          id,
-          name,
-          slug,
-          settings
-        )
-      `)
+      .select('*')
       .eq('user_id', session.user.id)
       .single()
 
-    if (personError) throw personError
+    const elapsed = Date.now() - startTime
+    console.log(`[getCurrentSession] Person fetch completed in ${elapsed}ms`, { hasPerson: !!person, error: personError?.message })
 
+    if (personError) {
+      console.warn('Error fetching person:', personError)
+      return {
+        session,
+        person: null,
+      }
+    }
+
+    console.log('[getCurrentSession] Success! Returning session + person')
     return {
       session,
       person,
     }
   } catch (error) {
-    console.error('Get session error:', error)
+    console.error('[getCurrentSession] Error:', error)
     return null
   }
 }
@@ -194,17 +194,34 @@ export function onAuthStateChange(callback) {
   const { data: { subscription } } = supabase.auth.onAuthStateChange(
     async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // Fetch person profile
-        const { data: person } = await supabase
-          .from('people')
-          .select(`
-            *,
-            companies (*)
-          `)
-          .eq('user_id', session.user.id)
-          .single()
+        console.log('[onAuthStateChange] SIGNED_IN event, user ID:', session.user.id)
 
-        callback(event, { session, person })
+        // Try fetch WITHOUT .single() to see if that's the issue
+        const startTime = Date.now()
+
+        try {
+          console.log('[onAuthStateChange] Starting fetch...')
+          const response = await supabase
+            .from('people')
+            .select('*')
+            .eq('user_id', session.user.id)
+
+          console.log('[onAuthStateChange] Fetch returned:', response)
+
+          const elapsed = Date.now() - startTime
+          console.log(`[onAuthStateChange] Completed in ${elapsed}ms`)
+
+          const person = response.data?.[0] || null
+
+          if (response.error) {
+            console.error('Error fetching person:', response.error)
+          }
+
+          callback(event, { session, person })
+        } catch (error) {
+          console.error('Auth state change handler error:', error)
+          callback(event, { session, person: null })
+        }
       } else if (event === 'SIGNED_OUT') {
         callback(event, null)
       }

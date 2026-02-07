@@ -39,9 +39,15 @@ const Vehicle = Backbone.Model.extend({
           .then(({ data, error }) => handleResponse(data, error))
 
       case 'create':
+        // Filter out null/undefined values and id for insert
+        const insertData = Object.fromEntries(
+          Object.entries(model.toJSON()).filter(([key, value]) =>
+            key !== 'id' && value !== null && value !== undefined
+          )
+        )
         return supabase
           .from('vehicles')
-          .insert(model.toJSON())
+          .insert(insertData)
           .select()
           .single()
           .then(({ data, error }) => handleResponse(data, error))
