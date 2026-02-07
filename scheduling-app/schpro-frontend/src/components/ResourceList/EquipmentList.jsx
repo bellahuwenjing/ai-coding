@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import EquipmentCollection from '../../collections/EquipmentCollection'
 import Equipment from '../../models/Equipment'
 import { useBackboneCollection } from '../../hooks/useBackboneCollection'
+import authService from '../../services/auth'
 import Button from '../common/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
 import ErrorMessage from '../common/ErrorMessage'
@@ -13,8 +14,7 @@ export default function EquipmentList() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEquipment, setEditingEquipment] = useState(null)
   const [localError, setLocalError] = useState(null)
-  // MVP: All users are admins
-  const userIsAdmin = true
+  const userIsAdmin = authService.isAdmin()
 
   // Fetch data on mount
   useEffect(() => {

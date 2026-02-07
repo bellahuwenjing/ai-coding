@@ -719,6 +719,145 @@ Once backend is ready, frontend will integrate seamlessly.
 
 ---
 
-*Document Version: 1.0*
+---
+
+## 📅 Session 2: Real Backend Integration (February 6, 2026)
+
+### Authentication Implementation ✅ COMPLETE
+
+**Real Authentication UI:**
+- [x] `components/Auth/Login.jsx` - Login form with email/password
+- [x] `components/Auth/Register.jsx` - Registration form with company creation
+- [x] `services/auth.js` - Real auth service connecting to backend API
+- [x] Updated `App.jsx` to show login/register when not authenticated
+- [x] Logout button in header
+- [x] `isAdmin()` helper added to auth service (returns true for MVP)
+
+**Authentication Flow:**
+1. User sees login screen if not authenticated
+2. Can switch to register form
+3. On successful login/register, JWT token stored in localStorage
+4. App reloads and shows main interface
+5. Logout clears tokens and returns to login
+
+**Fixed Issues:**
+- Disabled auto-initialization in `mockAuth.js` to prevent mock token conflicts
+- Updated all components to use real `authService` instead of `mockAuth`
+- Added proper authentication state management
+
+### Real API Integration ✅ COMPLETE
+
+**Switched from Mock to Real API:**
+- [x] Changed `USE_MOCK_API = false` in `services/api.js`
+- [x] Backend running on http://localhost:3000
+- [x] Frontend connects to real backend endpoints
+
+**URL Path Fixes:**
+- [x] Removed `/api/` prefix from all model `urlRoot` properties (Person, Vehicle, Equipment, Booking)
+- [x] Removed `/api/` prefix from all collection `url` properties
+- [x] Fixed double `/api/api/` issue (baseURL already includes `/api`)
+
+**Response Parsing:**
+- [x] Added `parse(response)` method to all collections to extract `response.data`
+- [x] Backend returns `{status: "success", data: [...]}` wrapper format
+- [x] Collections now properly unwrap the data array
+
+### Data Model Alignment ✅ COMPLETE
+
+**Database Schema Alignment:**
+
+Removed fields that don't exist in database:
+- [x] Removed `role` field from Person model defaults
+- [x] Removed `role` field from PersonForm
+- [x] Removed `role` dropdown from PersonForm modal
+- [x] Removed Role column from PeopleList table
+- [x] Removed `notes` field (doesn't exist in database)
+
+Added fields that exist in database:
+- [x] Added `certifications` field to Person model
+- [x] Added `hourly_rate` field to Person model
+
+**Updated Person Model:**
+```javascript
+defaults: {
+  name: '',
+  email: '',
+  phone: '',
+  skills: [],           // JSONB array
+  certifications: [],   // JSONB array
+  hourly_rate: null,    // DECIMAL
+  is_deleted: false,
+}
+```
+
+**Helper Method Updates:**
+- [x] `isAdmin()` now returns true (MVP: all users are admin)
+- [x] `isMember()` now returns true
+- [x] `isAssignable()` only checks `!is_deleted`
+
+### People CRUD Implementation ✅ COMPLETE
+
+**Backend Endpoints Working:**
+- [x] GET /api/people - List all people (filtered by company)
+- [x] POST /api/people - Create new person
+- [x] PUT /api/people/:id - Update person
+- [x] DELETE /api/people/:id - Soft delete
+- [x] POST /api/people/:id/restore - Restore deleted person
+
+**Features Verified:**
+- [x] View people list with real data from Supabase
+- [x] Create new person (without user_id - just schedulable resources)
+- [x] Edit person details
+- [x] Delete and restore people
+- [x] All data persists in Supabase database
+- [x] Multi-tenant: only see people from your company
+
+### Architecture Decisions
+
+**User vs People Separation:**
+- Database `user_id` column made nullable
+- Two types of people:
+  1. **Users**: Have `user_id` (created during registration, can login)
+  2. **Resources**: No `user_id` (created manually, just schedulable)
+- Simplified MVP implementation vs original "all people are users" design
+
+### Bug Fixes
+
+**CORS Configuration:**
+- [x] Fixed backend CORS to allow frontend origin (port 5173)
+- [x] Restarted backend server to apply changes
+
+**Authentication Errors:**
+- [x] Fixed Supabase auth by using `ANON_KEY` for auth operations
+- [x] Fixed Supabase auth by using `SERVICE_ROLE_KEY` for database operations
+- [x] Separated `supabaseAuth` and `supabaseAdmin` clients in backend
+
+**Field Validation:**
+- [x] Fixed frontend password validation (8+ characters to match backend)
+- [x] Fixed backend to handle all database fields (skills, certifications, hourly_rate)
+- [x] Removed non-existent fields (role, notes)
+
+### Current Status
+
+**Working Features:**
+- ✅ User registration and login
+- ✅ JWT authentication
+- ✅ People CRUD operations
+- ✅ Real database persistence (Supabase)
+- ✅ Multi-tenant data isolation
+
+**Pending:**
+- ⏳ Vehicles CRUD endpoints (backend not implemented yet)
+- ⏳ Equipment CRUD endpoints (backend not implemented yet)
+- ⏳ Bookings CRUD endpoints (backend not implemented yet)
+
+**Running Configuration:**
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3000
+- Database: Supabase PostgreSQL
+
+---
+
+*Document Version: 2.0*
 *Created: January 30, 2026, 9:00 PM*
-*Last Updated: January 30, 2026, 9:00 PM*
+*Last Updated: February 6, 2026, 10:00 PM*

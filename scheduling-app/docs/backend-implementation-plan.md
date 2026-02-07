@@ -1,49 +1,54 @@
 # Backend Implementation Plan
-## SchedulePro CodeIgniter 4 + Supabase Multi-Tenant API (Lean MVP)
+## SchedulePro Express.js + Supabase Multi-Tenant API (Lean MVP)
 
 ---
 
 ## Overview
 
-This plan outlines the implementation strategy for building the SchedulePro backend API using CodeIgniter 4 with Supabase (PostgreSQL + Auth) for multi-tenant architecture.
+This plan outlines the implementation strategy for building the SchedulePro backend API using Express.js with Supabase (PostgreSQL + Auth) for multi-tenant architecture.
 
-**Based on:** `docs/prd/PRD-backend.md` v4.0 (Supabase Edition)
+**Based on:** `docs/prd/PRD-backend.md` v5.0 (Express.js + Supabase Edition)
 
 **Key Changes from Original Plan:**
-- Use Supabase for database (PostgreSQL instead of MySQL)
-- Use Supabase Auth for authentication (no custom JWT)
-- Use supabase-php library for database access
+- Use Express.js instead of CodeIgniter 4 (Node.js instead of PHP)
+- Use Supabase for database (PostgreSQL) and authentication
+- Use @supabase/supabase-js official JavaScript client
 - RLS (Row Level Security) handles company isolation automatically
 - No role-based authorization in MVP (all users are admins)
 - No Redis caching needed
+- Simple local development with `npm run dev`
 
 ---
 
 ## Phase 1: Project Setup & Database (Day 1-2)
 
-### 1.1 Initialize CodeIgniter 4 Project
+### 1.1 Initialize Express.js Project
 
 **Tasks:**
-- [ ] Create CodeIgniter 4 project using Composer
+- [ ] Initialize Node.js project with npm
+- [ ] Install Express.js and dependencies
+- [ ] Install Supabase JavaScript client
+- [ ] Set up project structure
 - [ ] Configure environment variables (.env file)
-- [ ] Install Supabase PHP client library
 - [ ] Test basic server startup
 - [ ] Configure CORS for frontend connection
 
 **Commands:**
 ```bash
 cd schpro-backend
-composer create-project codeigniter4/appstarter .
-composer require supabase/supabase-php
-cp env .env
-# Edit .env with Supabase credentials
-php spark serve
+npm init -y
+npm install express dotenv cors @supabase/supabase-js
+npm install -D nodemon
+
+# Create project structure
+mkdir -p src/{controllers,middleware,services,routes,utils}
+touch src/app.js src/server.js .env .gitignore
 ```
 
 **Files to configure:**
-- `.env` - Supabase URL, API keys, CORS settings
-- `app/Config/App.php` - Base URL, timezone
-- `app/Config/Cors.php` - CORS configuration for frontend
+- `.env` - Supabase URL, API keys, port, CORS settings
+- `package.json` - Add dev and start scripts
+- `.gitignore` - Ignore node_modules and .env
 
 ---
 
@@ -54,8 +59,43 @@ php spark serve
 - [ ] Note project URL and API keys (anon, service_role)
 - [ ] Create database schema using Supabase SQL Editor
 - [ ] Run all CREATE TABLE statements from PRD Section 5
-- [ ] Verify RLS policies are enabled
+- [ ] **Disable RLS on all tables** (see note below)
 - [ ] Test authentication settings (enable email/password)
+- [ ] Disable email confirmation for MVP
+
+**Important: Row Level Security (RLS) Note**
+
+For MVP, we **disable RLS** on all tables. Here's why:
+
+**The RLS Infinite Recursion Issue:**
+- The original RLS policies had self-referencing checks
+- Example: `people` table policy checked `people` table to verify access
+- This caused infinite recursion: "to check if you can read people, read people, which checks if you can read people..."
+- Error: `"infinite recursion detected in policy for relation 'people'"`
+
+**Why Disabling RLS is Safe for MVP:**
+1. **We use SERVICE_ROLE_KEY** - bypasses RLS anyway
+2. **Backend manually filters** - every query includes `.eq('company_id', userCompanyId)`
+3. **Frontend never accesses Supabase** - all requests go through backend
+4. **Backend validates JWT tokens** - auth middleware ensures user identity
+5. **Company isolation enforced in code** - user's company_id attached to req.user
+
+**Security Approach:**
+```javascript
+// EVERY query must filter by company_id manually
+const { data } = await supabase
+  .from('people')
+  .select('*')
+  .eq('company_id', req.user.company_id)  // ← REQUIRED for security!
+  .eq('is_deleted', false);
+```
+
+**For Production:**
+- **Option A**: Keep RLS disabled, rely on backend filtering (current approach)
+- **Option B**: Fix RLS policies to avoid recursion and use ANON_KEY
+- **Option C**: Hybrid - use RLS for frontend direct access, SERVICE_ROLE_KEY for complex operations
+
+**Recommendation:** Stick with Option A (disabled RLS + manual filtering) for simplicity. It's secure as long as every query filters by `company_id`.
 
 **SQL to run in Supabase SQL Editor:**
 ```sql
@@ -84,69 +124,200 @@ php spark serve
 ### 1.3 Supabase Client Setup
 
 **Tasks:**
-- [ ] Create SupabaseClient library wrapper
-- [ ] Initialize Supabase client with project credentials
-- [ ] Create helper methods for common operations
+- [ ] Create Supabase service to initialize client
+- [ ] Configure Express app with middleware
+- [ ] Create auth middleware to verify JWT tokens
 - [ ] Test connection to Supabase
-- [ ] Create SupabaseAuthFilter to verify JWT tokens
+- [ ] Set up basic routes structure
 
 **Files to create:**
-- `app/Libraries/SupabaseClient.php`
-- `app/Filters/SupabaseAuthFilter.php`
-- `app/Config/Supabase.php`
+- `src/services/supabase.service.js` - Supabase client initialization
+- `src/middleware/auth.middleware.js` - Verify Supabase JWT tokens
+- `src/app.js` - Express app configuration
+- `src/server.js` - Server entry point
 
-**SupabaseClient.php Example:**
-```php
-<?php
-namespace App\Libraries;
+**src/services/supabase.service.js Example:**
+```javascript
+const { createClient } = require('@supabase/supabase-js');
 
-use Supabase\CreateClient;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-class SupabaseClient
-{
-    protected $client;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-    public function __construct()
-    {
-        $this->client = CreateClient(
-            getenv('SUPABASE_URL'),
-            getenv('SUPABASE_SERVICE_ROLE_KEY')
-        );
-    }
-
-    public function auth()
-    {
-        return $this->client->auth;
-    }
-
-    public function from($table)
-    {
-        return $this->client->from($table);
-    }
-}
+module.exports = supabase;
 ```
 
-**Files to configure:**
-- `app/Config/Filters.php` - Register SupabaseAuthFilter
+**Important: SERVICE_ROLE_KEY vs ANON_KEY**
+
+We use `SUPABASE_SERVICE_ROLE_KEY` in the backend for these reasons:
+
+**SERVICE_ROLE_KEY:**
+- ⚠️ **Bypasses all Row Level Security (RLS) policies**
+- Full admin access to database
+- Required for registration flow (user doesn't exist yet, so RLS would block)
+- Must manually filter by `company_id` in all queries
+- **Never expose to frontend**
+
+**ANON_KEY (alternative):**
+- ✅ Respects RLS policies automatically
+- RLS handles company isolation (no manual filtering needed)
+- More secure for regular operations
+- Can't be used during registration (user doesn't exist in `people` table yet)
+
+**MVP Approach:**
+1. Use SERVICE_ROLE_KEY for simplicity
+2. Manually add `company_id` filters to all queries
+3. Post-MVP: Consider creating two clients:
+   - Admin client (SERVICE_ROLE_KEY) for registration only
+   - Regular client (ANON_KEY) for all other operations (RLS handles filtering)
+
+**Critical Security Note:** With SERVICE_ROLE_KEY, you MUST manually filter every query by `company_id` to prevent data leaks:
+
+```javascript
+// WRONG - Returns all people from all companies!
+const { data } = await supabase.from('people').select('*');
+
+// CORRECT - Filter by company_id
+const { data } = await supabase
+  .from('people')
+  .select('*')
+  .eq('company_id', userCompanyId);
+```
+
+**src/app.js Example:**
+```javascript
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Routes (to be added)
+// app.use('/api/auth', authRoutes);
+// app.use('/api/people', peopleRoutes);
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+module.exports = app;
+```
+
+**src/server.js Example:**
+```javascript
+const app = require('./app');
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
 
 ---
 
-### 1.4 Base Models
+### 1.4 Package.json Scripts
 
 **Tasks:**
-- [ ] Create `CompanyModel.php` with Supabase queries
-- [ ] Create `Company` entity
-- [ ] Test company creation via Supabase client
+- [ ] Add dev and start scripts to package.json
+- [ ] Configure nodemon for auto-restart during development
 
-**Note:** Models now use SupabaseClient instead of CodeIgniter's query builder. RLS policies handle company scoping automatically.
-
-**Files to create:**
-- `app/Models/CompanyModel.php`
-- `app/Entities/Company.php`
+**package.json scripts:**
+```json
+{
+  "name": "schpro-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+```
 
 ---
 
 ## Phase 2: Authentication System (Day 3-4)
+
+### Architecture Decision: Backend Auth Endpoints vs Frontend-Only Supabase
+
+**Decision:** We use **backend authentication endpoints** that wrap Supabase Auth, rather than having the frontend call Supabase directly.
+
+#### Why Not Frontend-Only Supabase Auth?
+
+While Supabase can handle auth entirely in the frontend, **registration requires creating 3 related records**:
+
+**The Registration Problem:**
+```javascript
+// If frontend handles registration directly:
+1. supabase.auth.signUp({ email, password })        // Creates user in Supabase Auth
+2. POST /api/companies { name }                     // Create company (backend call)
+3. POST /api/people { user_id, company_id, ... }    // Create person (backend call)
+
+// Problems:
+- What if step 2 fails? User exists but no company!
+- What if step 3 fails? User + company exist but no person record!
+- Frontend has to handle complex multi-step error recovery
+- No transaction guarantees
+```
+
+#### Our Approach: Backend Wrapper Endpoints
+
+**How it works:**
+```javascript
+// Frontend makes ONE call:
+POST /api/auth/register { company_name, name, email, password }
+
+// Backend handles atomically:
+1. Create user in Supabase Auth
+2. Create company record
+3. Create person record linking user to company
+4. Return session + profile data
+
+// If ANY step fails, backend can handle rollback/cleanup
+```
+
+**Benefits:**
+- ✅ **Atomic registration** - all records created or none
+- ✅ **Simpler frontend** - one API call instead of managing complex flow
+- ✅ **Better error handling** - backend can rollback/cleanup
+- ✅ **Business logic in backend** - registration complexity hidden from frontend
+- ✅ **Consistent data** - no orphaned users or companies
+
+**Trade-offs:**
+- ❌ Extra hop (frontend → backend → Supabase instead of frontend → Supabase directly)
+- ❌ More backend code to maintain
+
+**Endpoints We Provide:**
+- `POST /api/auth/register` - Create user + company + person (complex, needs backend)
+- `POST /api/auth/login` - Login and return profile data (backend adds company info)
+- `POST /api/auth/logout` - Logout (could be frontend-only, but we provide for consistency)
+- `GET /api/auth/me` - Get current user profile (enriched with company data)
+
+**Frontend Still Uses Supabase Client For:**
+- Token storage and management (localStorage)
+- Automatic token refresh
+- Session persistence
+- (Optional) Password reset flows
+
+**Note:** This is the recommended pattern for complex registration flows. For simpler apps where users don't need company setup, frontend-only Supabase Auth would be fine.
+
+---
 
 ### 2.1 Registration Endpoint
 
@@ -760,12 +931,14 @@ $conflicts = $supabase
 - [ ] Test API with seeded data
 
 **Files to create:**
-- `app/Database/Seeds/DatabaseSeeder.php`
+- `src/utils/seed.js` - Script to seed test data via Supabase
 
 **Commands:**
 ```bash
-php spark db:seed DatabaseSeeder
+node src/utils/seed.js
 ```
+
+**Note:** Seeding can also be done directly in Supabase SQL Editor using INSERT statements.
 
 ---
 
@@ -786,8 +959,8 @@ php spark db:seed DatabaseSeeder
 
 **Commands:**
 ```bash
-php spark test
-php spark test --coverage-html writable/coverage
+npm test
+npm run test:coverage  # if configured
 ```
 
 ---
@@ -850,28 +1023,31 @@ php spark test --coverage-html writable/coverage
 
 ---
 
-## Timeline Summary (Lean MVP with Supabase)
+## Timeline Summary (Lean MVP with Express.js + Supabase)
 
 | Phase | Duration | Focus |
 |-------|----------|-------|
-| 1 | Day 1-2 | Project setup, Supabase setup, client configuration |
-| 2 | Day 3-4 | Authentication system (register, login, logout via Supabase Auth) |
-| 3 | Day 5 | Multi-tenancy testing (RLS verification) |
-| 4 | Day 6-7 | People management (CRUD, soft delete) |
-| 5 | Day 8 | Vehicle management (CRUD, soft delete) |
-| 6 | Day 9 | Equipment management (CRUD, soft delete) |
-| 7 | Day 10-12 | Booking management (CRUD, entity assignments) |
-| 8 | Day 12-13 | Conflict detection (time overlap checking) |
-| 9 | Day 14 | Manual testing, bug fixes, documentation |
+| 1 | Day 1 | Project setup, Supabase setup, Express.js configuration |
+| 2 | Day 2-3 | Authentication system (register, login, logout via Supabase Auth) |
+| 3 | Day 3 | Multi-tenancy testing (RLS verification) |
+| 4 | Day 4-5 | People management (CRUD, soft delete) |
+| 5 | Day 5-6 | Vehicle management (CRUD, soft delete) |
+| 6 | Day 6 | Equipment management (CRUD, soft delete) |
+| 7 | Day 7-9 | Booking management (CRUD, entity assignments) |
+| 8 | Day 9-10 | Conflict detection (time overlap checking) |
+| 9 | Day 10-11 | Manual testing, bug fixes, documentation |
 
-**Total Estimated Time:** 2-3 weeks for lean MVP (vs 6 weeks with custom auth/MySQL)
+**Total Estimated Time:** 1.5-2 weeks for lean MVP
 
-**Why Faster?**
+**Why So Fast?**
+- Express.js is lightweight and minimal setup
+- JavaScript/Node.js is simpler than PHP/CodeIgniter
 - Supabase Auth eliminates custom JWT implementation
 - RLS policies eliminate manual company filtering code
 - No migration files needed (use Supabase SQL Editor)
 - No role-based authorization to implement (deferred to P1)
 - No Redis caching layer
+- Same language as frontend (easier context switching)
 
 ---
 
@@ -891,13 +1067,13 @@ php spark test --coverage-html writable/coverage
 - [ ] Member users cannot perform admin actions
 
 ### Security
-- [ ] Passwords are hashed using `password_hash()`
-- [ ] JWT tokens expire after configured time
+- [ ] Passwords managed by Supabase Auth (secure by default)
+- [ ] JWT tokens from Supabase Auth validated on protected routes
 - [ ] Protected routes require valid JWT token
-- [ ] Company isolation prevents cross-tenant access
-- [ ] Admin endpoints protected with AdminFilter
-- [ ] SQL injection prevention (using query builder)
-- [ ] XSS protection (input validation and escaping)
+- [ ] **Company isolation**: All queries filtered by `company_id` (critical with SERVICE_ROLE_KEY!)
+- [ ] SERVICE_ROLE_KEY never exposed to frontend
+- [ ] All user input validated and sanitized
+- [ ] CORS configured to only allow frontend domain
 
 ### Data Integrity
 - [ ] Foreign key constraints enforced
@@ -921,23 +1097,36 @@ php spark test --coverage-html writable/coverage
 
 ## Dependencies
 
+**Production Dependencies:**
 ```json
 {
-  "require": {
-    "php": "^8.1",
-    "codeigniter4/framework": "^4.4",
-    "supabase/supabase-php": "^1.0"
-  },
-  "require-dev": {
-    "fakerphp/faker": "^1.9",
-    "phpunit/phpunit": "^9.5"
+  "dependencies": {
+    "express": "^4.18.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
   }
 }
 ```
 
-**Key Changes:**
-- **Removed**: `firebase/php-jwt` (Supabase Auth handles JWT)
-- **Added**: `supabase/supabase-php` (Supabase client library)
+**Development Dependencies:**
+```json
+{
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  }
+}
+```
+
+**Key Points:**
+- **express**: Web framework
+- **@supabase/supabase-js**: Official Supabase JavaScript client
+- **dotenv**: Environment variable management
+- **cors**: CORS middleware
+- **nodemon**: Auto-restart server during development
+- **jest + supertest**: Testing (P1 priority)
 
 ---
 
@@ -956,43 +1145,55 @@ php spark test --coverage-html writable/coverage
 ### Development `.env` Settings
 
 ```env
-#--------------------------------------------------------------------
-# ENVIRONMENT
-#--------------------------------------------------------------------
-CI_ENVIRONMENT = development
+# Server Configuration
+NODE_ENV=development
+PORT=3000
 
-#--------------------------------------------------------------------
-# APP
-#--------------------------------------------------------------------
-app.baseURL = 'http://localhost:8080/'
-app.indexPage = ''
-app.defaultLocale = 'en'
+# Supabase Configuration
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-from-supabase-dashboard
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-from-supabase-dashboard
 
-#--------------------------------------------------------------------
-# SUPABASE
-#--------------------------------------------------------------------
-SUPABASE_URL = https://your-project-id.supabase.co
-SUPABASE_ANON_KEY = your-anon-key-from-supabase-dashboard
-SUPABASE_SERVICE_ROLE_KEY = your-service-role-key-from-supabase-dashboard
-
-#--------------------------------------------------------------------
-# CORS
-#--------------------------------------------------------------------
-cors.allowedOrigins = http://localhost:5173
-cors.allowedMethods = GET, POST, PUT, DELETE, OPTIONS
-cors.allowedHeaders = Content-Type, Authorization
+# CORS (Frontend URL)
+FRONTEND_URL=http://localhost:5173
 ```
 
 ### Getting Supabase Credentials
 
-1. Go to https://supabase.com and create project
+1. Go to https://supabase.com and create a new project
 2. In project dashboard, go to Settings > API
-3. Copy:
-   - Project URL → SUPABASE_URL
-   - anon/public key → SUPABASE_ANON_KEY
-   - service_role key → SUPABASE_SERVICE_ROLE_KEY (keep secret!)
+3. Copy the following values:
+   - Project URL → `SUPABASE_URL`
+   - anon/public key → `SUPABASE_ANON_KEY` (can be used in frontend)
+   - service_role key → `SUPABASE_SERVICE_ROLE_KEY` ⚠️ **KEEP SECRET - SERVER ONLY!**
 
-**Note:** No JWT secret needed - Supabase manages authentication tokens
+**About the Keys:**
+
+- **ANON_KEY**:
+  - Safe for frontend use
+  - Respects Row Level Security (RLS) policies
+  - Users can only access data allowed by RLS
+
+- **SERVICE_ROLE_KEY**:
+  - ⚠️ **BYPASSES ALL RLS POLICIES**
+  - Full admin access to entire database
+  - Must be kept secret (never commit to Git, never expose to frontend)
+  - Used in backend for operations that need to bypass RLS (e.g., user registration)
+  - **Critical**: You must manually filter by `company_id` in all queries!
+
+**Note:** No JWT secret needed - Supabase manages authentication tokens automatically.
+
+### .gitignore
+
+```
+node_modules/
+.env
+.env.local
+.DS_Store
+*.log
+dist/
+build/
+```
 
 ---
 

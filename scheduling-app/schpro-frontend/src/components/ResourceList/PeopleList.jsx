@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import PeopleCollection from '../../collections/PeopleCollection'
 import Person from '../../models/Person'
 import { useBackboneCollection } from '../../hooks/useBackboneCollection'
+import authService from '../../services/auth'
 import Button from '../common/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
 import ErrorMessage from '../common/ErrorMessage'
@@ -13,8 +14,7 @@ export default function PeopleList() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingPerson, setEditingPerson] = useState(null)
   const [localError, setLocalError] = useState(null)
-  // MVP: All users are admins
-  const userIsAdmin = true
+  const userIsAdmin = authService.isAdmin()
 
   // Fetch data on mount
   useEffect(() => {
@@ -100,7 +100,6 @@ export default function PeopleList() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skills</th>
                   {userIsAdmin && (
@@ -116,13 +115,6 @@ export default function PeopleList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {person.get('email')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        person.isAdmin() ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                        {person.get('role')}
-                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {person.get('phone') || '-'}

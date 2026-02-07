@@ -1,96 +1,92 @@
-import { useState } from 'react'
-import { login } from '../../services/auth'
-import Button from '../common/Button'
-import ErrorMessage from '../common/ErrorMessage'
+import { useState } from 'react';
+import authService from '../../services/auth';
 
-export default function Login({ onSuccess, onSwitchToRegister }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+function Login({ onSwitchToRegister }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-    setIsLoading(true)
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
     try {
-      const result = await login(email, password)
-      console.log('Login successful:', result)
-      onSuccess(result)
-    } catch (err) {
-      console.error('Login error:', err)
+      const result = await authService.login(email, password);
 
-      // Check for specific error messages
-      if (err.message?.includes('Email not confirmed')) {
-        setError('Please check your email and click the confirmation link before logging in.')
-      } else if (err.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password.')
+      if (result.success) {
+        // Reload the page to trigger App.jsx to re-render with authenticated state
+        window.location.reload();
       } else {
-        setError(err.message || 'Login failed. Please check your credentials.')
+        setError(result.error || 'Login failed');
       }
+    } catch (err) {
+      setError('An unexpected error occurred');
+      console.error('Login error:', err);
     } finally {
-      setIsLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900">
-            SchedulePro
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to SchedulePro
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your account
-          </p>
         </div>
-
-        {error && <ErrorMessage error={error} onDismiss={() => setError(null)} />}
-
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="sr-only">
                 Email address
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
+                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                placeholder="you@example.com"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                placeholder="Email address"
               />
             </div>
-
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="sr-only">
                 Password
               </label>
               <input
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                placeholder="••••••••"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
               />
             </div>
           </div>
 
           <div>
-            <Button
+            <button
               type="submit"
-              disabled={isLoading}
-              className="w-full"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </Button>
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
           </div>
 
           <div className="text-center">
@@ -99,11 +95,13 @@ export default function Login({ onSuccess, onSwitchToRegister }) {
               onClick={onSwitchToRegister}
               className="text-sm text-primary-600 hover:text-primary-500"
             >
-              Don't have an account? Register
+              Don't have an account? Sign up
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
+
+export default Login;

@@ -1,5 +1,5 @@
 # PRD: Backend API
-## SchedulePro - CodeIgniter 4 + Supabase Multi-Tenant API (Lean MVP)
+## SchedulePro - Express.js + Supabase Multi-Tenant API (Lean MVP)
 
 ---
 
@@ -19,7 +19,7 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
 ### 1.3 MVP Scope
 - **No role-based authorization**: All authenticated users are treated as admins for MVP
 - **No caching layer**: Direct Supabase queries without Redis
-- **Local development**: CodeIgniter runs locally via `php spark serve`, connects to Supabase cloud
+- **Local development**: Express.js runs locally via `npm run dev`, connects to Supabase cloud
 - **Lean implementation**: Focus on core CRUD operations and conflict detection only
 
 ---
@@ -28,20 +28,56 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
 
 | Component | Technology | Notes |
 |-----------|------------|-------|
-| Framework | CodeIgniter 4.x | Familiar PHP framework |
+| Framework | Express.js 4.x | Fast, unopinionated Node.js framework |
+| Runtime | Node.js 18+ | LTS version |
 | Database | Supabase (PostgreSQL) | Managed Postgres with built-in auth |
 | Authentication | Supabase Auth | JWT authentication via Supabase |
 | Authorization | Supabase RLS (Row Level Security) | Company isolation at database level |
-| Supabase Client | supabase-php (community) | PHP client for Supabase API |
-| PHP Version | 8.1+ | Modern PHP features |
-| Dev Server | php spark serve | Built-in CodeIgniter dev server |
+| Supabase Client | @supabase/supabase-js | Official JavaScript client |
+| Language | JavaScript/TypeScript | Modern ES6+ features |
+| Dev Server | nodemon | Auto-restart on file changes |
 
-**Why Supabase?**
+**Why Express.js + Supabase?**
+- Simple, lightweight API framework
+- Native JavaScript - same language as React frontend
+- @supabase/supabase-js is the official, well-maintained client
 - Built-in authentication (no custom JWT implementation needed)
 - Row-level security for multi-tenancy
-- PostgreSQL instead of MySQL (better JSON support)
 - Free tier for MVP development
+- Easy deployment to Vercel, Railway, or Render
 - Real-time features available for future use
+
+### 2.1 Hosting & Deployment Options
+
+**For MVP Development:**
+- **Local Development**: Run Express server locally on `http://localhost:3000` (or any port)
+- **Database**: Supabase cloud (free tier) at `https://your-project.supabase.co`
+
+**Recommended Hosting for Production:**
+
+| Platform | Pros | Cons | Best For |
+|----------|------|------|----------|
+| **Vercel** | • Free tier<br>• Auto-deploy from Git<br>• Excellent DX<br>• Built-in CI/CD | • Serverless functions (cold starts)<br>• 10s execution limit on free tier | Simple APIs, low traffic |
+| **Railway** | • Free $5/month credit<br>• Always-on server (no cold starts)<br>• Simple deployment<br>• Built-in monitoring | • Paid after free credit | APIs needing always-on server |
+| **Render** | • Free tier<br>• Always-on server<br>• Easy setup<br>• Auto-deploy from Git | • Free tier spins down after inactivity<br>• Slower than paid tiers | MVP testing, low-medium traffic |
+| **Fly.io** | • Global edge deployment<br>• Always-on<br>• Good free tier | • Slightly more complex setup | Low latency, global apps |
+
+**MVP Recommendation**: Start with **local development** for speed. When ready to deploy, use **Railway** (always-on, no cold starts) or **Render** (free tier).
+
+**Deployment Commands:**
+```bash
+# Vercel
+npm install -g vercel
+vercel
+
+# Railway
+npm install -g @railway/cli
+railway login
+railway up
+
+# Render
+# Push to GitHub, connect repo in Render dashboard
+```
 
 ---
 
@@ -274,58 +310,44 @@ RESTful API for a multi-tenant booking system that manages resources (people, ve
 
 ```
 schpro-backend/
-├── app/
-│   ├── Controllers/
-│   │   ├── Auth/
-│   │   │   ├── RegisterController.php
-│   │   │   ├── LoginController.php
-│   │   │   └── LogoutController.php
-│   │   ├── PersonController.php
-│   │   ├── VehicleController.php
-│   │   ├── EquipmentController.php
-│   │   └── BookingController.php
-│   ├── Filters/
-│   │   └── SupabaseAuthFilter.php      # Verify Supabase JWT tokens
-│   ├── Models/
-│   │   ├── CompanyModel.php
-│   │   ├── PersonModel.php
-│   │   ├── VehicleModel.php
-│   │   ├── EquipmentModel.php
-│   │   ├── BookingModel.php
-│   │   ├── BookingPersonModel.php
-│   │   ├── BookingVehicleModel.php
-│   │   └── BookingEquipmentModel.php
-│   ├── Libraries/
-│   │   ├── SupabaseClient.php          # Supabase PHP client wrapper
-│   │   ├── ConflictDetection.php
-│   │   └── BookingService.php
-│   ├── Entities/
-│   │   ├── Company.php
-│   │   ├── Person.php
-│   │   ├── Vehicle.php
-│   │   ├── Equipment.php
-│   │   └── Booking.php
-│   └── Config/
-│       ├── Routes.php
-│       ├── Filters.php
-│       ├── Validation.php
-│       └── Supabase.php                # Supabase configuration
-├── writable/
-│   └── logs/
-├── public/
-│   └── index.php
+├── src/
+│   ├── controllers/
+│   │   ├── auth.controller.js        # register, login, logout
+│   │   ├── person.controller.js      # people CRUD
+│   │   ├── vehicle.controller.js     # vehicles CRUD
+│   │   ├── equipment.controller.js   # equipment CRUD
+│   │   └── booking.controller.js     # bookings CRUD
+│   ├── middleware/
+│   │   ├── auth.middleware.js        # Verify Supabase JWT tokens
+│   │   └── errorHandler.js           # Global error handling
+│   ├── services/
+│   │   ├── supabase.service.js       # Supabase client initialization
+│   │   ├── booking.service.js        # Booking business logic
+│   │   └── conflict.service.js       # Conflict detection logic
+│   ├── routes/
+│   │   ├── auth.routes.js
+│   │   ├── people.routes.js
+│   │   ├── vehicles.routes.js
+│   │   ├── equipment.routes.js
+│   │   └── bookings.routes.js
+│   ├── utils/
+│   │   ├── validation.js             # Input validation helpers
+│   │   └── response.js               # Standardized API responses
+│   └── app.js                        # Express app setup
 ├── tests/
-├── composer.json
+├── package.json
 ├── .env
-└── spark
+├── .gitignore
+└── server.js                         # Entry point
 ```
 
-**Key Changes from Original Structure:**
-- **No Database/Migrations folder**: Supabase handles schema via SQL Editor or CLI
-- **SupabaseClient.php**: Wrapper for supabase-php library
-- **SupabaseAuthFilter.php**: Replaces custom JWT validation
-- **No AdminFilter.php**: MVP assumes all users are admins
-- **No CompanyFilter.php**: RLS handles company isolation automatically
+**Key Architecture Decisions:**
+- **No database/migrations folder**: Supabase handles schema via SQL Editor or CLI
+- **Service layer**: Business logic separated from controllers
+- **Middleware**: Auth verification and error handling
+- **No admin middleware**: MVP assumes all authenticated users are admins
+- **No company filter middleware**: RLS handles company isolation automatically
+- **Simple folder structure**: Optimized for MVP speed
 
 ---
 
@@ -621,10 +643,10 @@ CREATE POLICY "Users can manage booking_equipment in their company"
 1. Log into Supabase dashboard
 2. Go to SQL Editor
 3. Copy/paste all CREATE TABLE statements above
-4. Run each section separately
+4. Run each section separately (tables first, then RLS policies)
 5. Verify tables appear in Table Editor
 
-**Method 2: Supabase CLI**
+**Method 2: Supabase CLI (For Version Control)**
 ```bash
 # Install Supabase CLI
 npm install -g supabase
@@ -639,507 +661,7 @@ supabase migration new initial_schema
 supabase db push
 ```
 
-**Method 3: CodeIgniter Migrations (Not Recommended)**
-- CodeIgniter migrations designed for MySQL AUTO_INCREMENT
-- PostgreSQL uses UUIDs and different syntax
-- Better to use Supabase tools for schema management
-
-### 5.10 Removed Migration Examples
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000001_CreateCompaniesTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateCompaniesTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            'name' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'slug' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'settings' => [
-                'type' => 'JSON',
-                'null' => true,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-            'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey('id');
-        $this->forge->addUniqueKey('slug');
-        $this->forge->addKey('slug', false, false, 'idx_slug');
-        $this->forge->createTable('companies');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('companies');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000002_CreatePeopleTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreatePeopleTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            'company_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'name' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'email' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-                // Required for authentication
-            ],
-            'password' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-                // Required for authentication
-            ],
-            'role' => [
-                'type' => 'ENUM',
-                'constraint' => ['admin', 'member'],
-                'default' => 'member',
-            ],
-            'phone' => [
-                'type' => 'VARCHAR',
-                'constraint' => 50,
-                'null' => true,
-            ],
-            'skills' => [
-                'type' => 'JSON',
-                'null' => true,
-            ],
-            'certifications' => [
-                'type' => 'JSON',
-                'null' => true,
-            ],
-            'hourly_rate' => [
-                'type' => 'DECIMAL',
-                'constraint' => '10,2',
-                'null' => true,
-            ],
-            'is_deleted' => [
-                'type' => 'TINYINT',
-                'constraint' => 1,
-                'default' => 0,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-            'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey('id');
-        $this->forge->addUniqueKey('email', 'idx_email');
-        $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addKey('role', false, false, 'idx_role');
-        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
-        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('people');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('people');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000003_CreateVehiclesTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateVehiclesTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            'company_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'name' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'make' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'model' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'year' => [
-                'type' => 'SMALLINT',
-                'unsigned' => true,
-                'null' => true,
-            ],
-            'license_plate' => [
-                'type' => 'VARCHAR',
-                'constraint' => 20,
-                'null' => true,
-            ],
-            'vin' => [
-                'type' => 'VARCHAR',
-                'constraint' => 17,
-                'null' => true,
-            ],
-            'capacity' => [
-                'type' => 'VARCHAR',
-                'constraint' => 50,
-                'null' => true,
-            ],
-            'is_deleted' => [
-                'type' => 'TINYINT',
-                'constraint' => 1,
-                'default' => 0,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-            'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey('id');
-        $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
-        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('vehicles');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('vehicles');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000004_CreateEquipmentTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateEquipmentTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            'company_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'name' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'serial_number' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'manufacturer' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'model' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'condition' => [
-                'type' => 'ENUM',
-                'constraint' => ['excellent', 'good', 'fair', 'poor'],
-                'null' => true,
-            ],
-            'is_deleted' => [
-                'type' => 'TINYINT',
-                'constraint' => 1,
-                'default' => 0,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-            'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey('id');
-        $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
-        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('equipment');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('equipment');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000005_CreateBookingsTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateBookingsTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            'company_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'created_by' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'title' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-            ],
-            'start_time' => [
-                'type' => 'DATETIME',
-            ],
-            'end_time' => [
-                'type' => 'DATETIME',
-            ],
-            'location' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-                'null' => true,
-            ],
-            'notes' => [
-                'type' => 'TEXT',
-                'null' => true,
-            ],
-            'is_deleted' => [
-                'type' => 'TINYINT',
-                'constraint' => 1,
-                'default' => 0,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-            'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey('id');
-        $this->forge->addKey('company_id', false, false, 'idx_company_id');
-        $this->forge->addKey('start_time', false, false, 'idx_start_time');
-        $this->forge->addKey('end_time', false, false, 'idx_end_time');
-        $this->forge->addKey('is_deleted', false, false, 'idx_is_deleted');
-        $this->forge->addForeignKey('company_id', 'companies', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('created_by', 'people', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('bookings');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('bookings');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000006_CreateBookingPeopleTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateBookingPeopleTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'booking_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'person_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey(['booking_id', 'person_id']);
-        $this->forge->addKey('person_id', false, false, 'idx_person_id');
-        $this->forge->addForeignKey('booking_id', 'bookings', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('person_id', 'people', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('booking_people');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('booking_people');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000007_CreateBookingVehiclesTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateBookingVehiclesTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'booking_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'vehicle_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey(['booking_id', 'vehicle_id']);
-        $this->forge->addKey('vehicle_id', false, false, 'idx_vehicle_id');
-        $this->forge->addForeignKey('booking_id', 'bookings', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('vehicle_id', 'vehicles', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('booking_vehicles');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('booking_vehicles');
-    }
-}
-```
-
-```php
-<?php
-// app/Database/Migrations/2026-01-01-000008_CreateBookingEquipmentTable.php
-namespace App\Database\Migrations;
-
-use CodeIgniter\Database\Migration;
-
-class CreateBookingEquipmentTable extends Migration
-{
-    public function up()
-    {
-        $this->forge->addField([
-            'booking_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'equipment_id' => [
-                'type' => 'BIGINT',
-                'unsigned' => true,
-            ],
-            'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
-        ]);
-
-        $this->forge->addPrimaryKey(['booking_id', 'equipment_id']);
-        $this->forge->addKey('equipment_id', false, false, 'idx_equipment_id');
-        $this->forge->addForeignKey('booking_id', 'bookings', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('equipment_id', 'equipment', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('booking_equipment');
-    }
-
-    public function down()
-    {
-        $this->forge->dropTable('booking_equipment');
-    }
-}
-```
+**Note**: For MVP, Method 1 (SQL Editor) is fastest. Method 2 is better for production where you need migration version control.
 
 ---
 

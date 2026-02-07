@@ -1,60 +1,34 @@
-import Backbone from 'backbone'
-import Person from '../models/Person'
-import { supabase } from '../config/supabase'
+import Backbone from 'backbone';
+import Person from '../models/Person';
 
 const PeopleCollection = Backbone.Collection.extend({
   model: Person,
+  url: '/people',
 
-  // Override fetch to use Supabase
-  fetch(options = {}) {
-    const includeDeleted = options.includeDeleted || false
-
-    let query = supabase
-      .from('people')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (!includeDeleted) {
-      query = query.eq('is_deleted', false)
-    }
-
-    return query
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Fetch people error:', error)
-          if (options.error) options.error(this, error)
-          throw error
-        }
-        this.reset(data)
-        if (options.success) options.success(data)
-        this.trigger('sync', this, data, options)
-        return data
-      })
-      .catch((error) => {
-        if (options.error) options.error(this, error)
-        throw error
-      })
+  // Parse API response to extract data array
+  parse(response) {
+    return response.data || response;
   },
 
-  // Get only assignable people (not deleted)
+  // Get only assignable people (members, not deleted)
   getAssignable() {
-    return this.filter(person => person.isAssignable())
+    return this.filter(person => person.isAssignable());
   },
 
   // Get admins
   getAdmins() {
-    return this.filter(person => person.isAdmin())
+    return this.filter(person => person.isAdmin());
   },
 
   // Get members
   getMembers() {
-    return this.filter(person => person.isMember())
+    return this.filter(person => person.isMember());
   },
 
   // Get deleted people
   getDeleted() {
-    return this.filter(person => person.isDeleted())
+    return this.filter(person => person.isDeleted());
   },
-})
+});
 
-export default PeopleCollection
+export default PeopleCollection;

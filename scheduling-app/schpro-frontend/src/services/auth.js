@@ -1,216 +1,160 @@
-import { supabase } from '../config/supabase'
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
+// Create axios instance for auth (no interceptors needed for login/register)
+const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
 /**
- * Register new user and create company
- * Creates:
- * 1. Supabase Auth user
- * 2. Company record
- * 3. Person record linked to both
+ * Auth Service - Handles authentication with backend
  */
-export async function register({ companyName, name, email, password }) {
-  try {
-    console.log('Starting registration...')
-
-    // 1. Sign up with Supabase Auth
-    console.log('Calling signUp...')
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    console.log('SignUp response:', { authData, authError })
-
-    if (authError) throw authError
-    if (!authData.user) throw new Error('User creation failed')
-
-    // Debug: Check if session exists
-    console.log('SignUp successful, session:', authData.session ? 'EXISTS' : 'NULL')
-    console.log('User ID:', authData.user.id)
-
-    // Verify session is set on client
-    const { data: { session } } = await supabase.auth.getSession()
-    console.log('Current session after signUp:', session ? 'EXISTS' : 'NULL')
-
-    if (!session) {
-      throw new Error('No session available after signup')
-    }
-
-    // 2. Create company record
-    const slug = companyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .insert({
-        name: companyName,
-        slug: slug,
-        settings: {}
-      })
-      .select()
-      .single()
-
-    if (companyError) throw companyError
-
-    // 3. Create person record linked to auth user and company
-    const { data: person, error: personError } = await supabase
-      .from('people')
-      .insert({
-        user_id: authData.user.id,
-        company_id: company.id,
+const authService = {
+  /**
+   * Register new user and company
+   */
+  async register(companyName, name, email, password) {
+    try {
+      const response = await authApi.post('/auth/register', {
+        company_name: companyName,
         name,
         email,
-        skills: [],
-        certifications: [],
-        is_deleted: false,
-      })
-      .select()
-      .single()
+        password
+      });
 
-    if (personError) throw personError
+      if (response.data.status === 'success') {
+        const { access_token, refresh_token } = response.data.data.session;
+        const { profile } = response.data.data;
 
-    return {
-      user: authData.user,
-      session: authData.session,
-      person,
-      company,
+        // Store tokens
+        localStorage.setItem('auth_token', access_token);
+        localStorage.setItem('refresh_token', refresh_token);
+        localStorage.setItem('user', JSON.stringify(profile));
+
+        return {
+          success: true,
+          user: profile,
+          token: access_token
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data.message || 'Registration failed'
+      };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Registration failed. Please try again.'
+      };
     }
-  } catch (error) {
-    console.error('Registration error:', error)
-    throw error
-  }
-}
+  },
 
-/**
- * Login with email and password
- * Returns session and person profile
- */
-export async function login(email, password) {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+  /**
+   * Login user
+   */
+  async login(email, password) {
+    try {
+      const response = await authApi.post('/auth/login', {
+        email,
+        password
+      });
 
-    if (error) throw error
-    if (!data.session) throw new Error('Login failed')
+      if (response.data.status === 'success') {
+        const { access_token, refresh_token } = response.data.data.session;
+        const { profile } = response.data.data;
 
-    // Fetch person record with company info
-    const { data: person, error: personError } = await supabase
-      .from('people')
-      .select(`
-        *,
-        companies (
-          id,
-          name,
-          slug,
-          settings
-        )
-      `)
-      .eq('user_id', data.user.id)
-      .single()
+        // Store tokens
+        localStorage.setItem('auth_token', access_token);
+        localStorage.setItem('refresh_token', refresh_token);
+        localStorage.setItem('user', JSON.stringify(profile));
 
-    if (personError) throw personError
+        return {
+          success: true,
+          user: profile,
+          token: access_token
+        };
+      }
 
-    return {
-      user: data.user,
-      session: data.session,
-      person,
+      return {
+        success: false,
+        error: response.data.message || 'Login failed'
+      };
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Login failed. Please check your credentials.'
+      };
     }
-  } catch (error) {
-    console.error('Login error:', error)
-    throw error
-  }
-}
+  },
 
-/**
- * Logout current user
- */
-export async function logout() {
-  try {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-  } catch (error) {
-    console.error('Logout error:', error)
-    throw error
-  }
-}
-
-/**
- * Get current session and person profile
- * Returns null if not authenticated
- */
-export async function getCurrentSession() {
-  try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError) throw sessionError
-    if (!session) return null
-
-    // Fetch person record with company info
-    const { data: person, error: personError } = await supabase
-      .from('people')
-      .select(`
-        *,
-        companies (
-          id,
-          name,
-          slug,
-          settings
-        )
-      `)
-      .eq('user_id', session.user.id)
-      .single()
-
-    if (personError) throw personError
-
-    return {
-      session,
-      person,
+  /**
+   * Logout user
+   */
+  async logout() {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        // Call backend logout endpoint
+        await authApi.post('/auth/logout', {}, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local storage regardless of API call result
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
     }
-  } catch (error) {
-    console.error('Get session error:', error)
-    return null
-  }
-}
+  },
 
-/**
- * Check if user is currently authenticated
- */
-export async function isAuthenticated() {
-  const { data: { session } } = await supabase.auth.getSession()
-  return !!session
-}
-
-/**
- * Get current user ID from session
- */
-export async function getCurrentUserId() {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.user?.id || null
-}
-
-/**
- * Listen to auth state changes
- */
-export function onAuthStateChange(callback) {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        // Fetch person profile
-        const { data: person } = await supabase
-          .from('people')
-          .select(`
-            *,
-            companies (*)
-          `)
-          .eq('user_id', session.user.id)
-          .single()
-
-        callback(event, { session, person })
-      } else if (event === 'SIGNED_OUT') {
-        callback(event, null)
+  /**
+   * Get current user from localStorage
+   */
+  getCurrentUser() {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch (e) {
+        return null;
       }
     }
-  )
+    return null;
+  },
 
-  // Return unsubscribe function
-  return () => subscription.unsubscribe()
-}
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated() {
+    return !!localStorage.getItem('auth_token');
+  },
+
+  /**
+   * Get auth token
+   */
+  getToken() {
+    return localStorage.getItem('auth_token');
+  },
+
+  /**
+   * Check if user is admin
+   * For MVP: All authenticated users are admin
+   */
+  isAdmin() {
+    return this.isAuthenticated();
+  }
+};
+
+export default authService;

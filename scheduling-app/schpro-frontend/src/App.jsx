@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { getCurrentSession, logout, onAuthStateChange } from './services/auth'
+import { useState } from 'react'
+import authService from './services/auth'
 import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
 import PeopleList from './components/ResourceList/PeopleList'
@@ -11,58 +11,22 @@ import BookingForm from './components/BookingForm/BookingForm'
 function App() {
   const [currentView, setCurrentView] = useState('people')
   const [selectedBooking, setSelectedBooking] = useState(null)
-  const [currentUser, setCurrentUser] = useState(null)
-  const [isLoadingUser, setIsLoadingUser] = useState(true)
-  const [authView, setAuthView] = useState('login') // 'login' or 'register'
+  const [showRegister, setShowRegister] = useState(false)
 
-  // Load current user on mount and listen for auth changes
-  useEffect(() => {
-    loadUser()
+  const isAuthenticated = authService.isAuthenticated()
+  const currentUser = authService.getCurrentUser()
 
-    // Listen for auth state changes (email confirmation, sign in, etc.)
-    const unsubscribe = onAuthStateChange((event, data) => {
-      console.log('Auth state changed:', event, data)
-      if (event === 'SIGNED_IN' && data?.person) {
-        setCurrentUser(data.person)
-        setIsLoadingUser(false)
-      } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null)
-        setAuthView('login')
-      }
-    })
-
-    return () => unsubscribe()
-  }, [])
-
-  async function loadUser() {
-    setIsLoadingUser(true)
-    try {
-      const session = await getCurrentSession()
-      if (session?.person) {
-        setCurrentUser(session.person)
-      }
-    } catch (error) {
-      console.error('Failed to load user session:', error)
-    } finally {
-      setIsLoadingUser(false)
-    }
-  }
-
-  // Handle successful login/register
-  const handleAuthSuccess = async (result) => {
-    console.log('Auth success, loading user...')
-    await loadUser()
-  }
-
-  // Handle logout
   const handleLogout = async () => {
-    try {
-      await logout()
-      setCurrentUser(null)
-      setAuthView('login')
-    } catch (error) {
-      console.error('Logout failed:', error)
+    await authService.logout()
+    window.location.reload()
+  }
+
+  // Show Login or Register if not authenticated
+  if (!isAuthenticated) {
+    if (showRegister) {
+      return <Register onSwitchToLogin={() => setShowRegister(false)} />
     }
+    return <Login onSwitchToRegister={() => setShowRegister(true)} />
   }
 
   const renderView = () => {
@@ -131,10 +95,10 @@ function App() {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">SchedulePro</h1>
             <div className="flex items-center space-x-4">
-              <span className="text-sm">{currentUser.name} ({currentUser.role})</span>
+              <span className="text-sm">{currentUser?.name}</span>
               <button
                 onClick={handleLogout}
-                className="text-sm text-white hover:text-gray-200 underline"
+                className="text-sm bg-primary-700 hover:bg-primary-800 px-3 py-1 rounded"
               >
                 Logout
               </button>
