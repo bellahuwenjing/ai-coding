@@ -8,7 +8,7 @@ export default function EquipmentForm({ equipment, onClose }) {
     name: '',
     type: '',
     serial_number: '',
-    condition: 'Good',
+    condition: 'good',
   })
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
@@ -23,7 +23,7 @@ export default function EquipmentForm({ equipment, onClose }) {
         name: equipment.get('name') || '',
         type: equipment.get('type') || '',
         serial_number: equipment.get('serial_number') || '',
-        condition: equipment.get('condition') || 'Good',
+        condition: equipment.get('condition') || 'good',
       })
     }
   }, [equipment])
@@ -148,10 +148,10 @@ export default function EquipmentForm({ equipment, onClose }) {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
-                <option value="Excellent">Excellent</option>
-                <option value="Good">Good</option>
-                <option value="Fair">Fair</option>
-                <option value="Poor">Poor</option>
+                <option value="excellent">Excellent</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
               </select>
             </div>
           </div>

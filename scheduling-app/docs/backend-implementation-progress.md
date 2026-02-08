@@ -80,9 +80,25 @@ ALTER TABLE people ALTER COLUMN user_id DROP NOT NULL;
 - All queries automatically filtered by `req.user.company_id` (multi-tenant isolation)
 - Duplicate license plate validation (returns 400 error)
 
-### Phase 4: Equipment Management ⏳ TODO
-- [ ] CRUD endpoints for equipment
-- [ ] Fields: name, type, serial_number, condition, status, etc.
+### Phase 4: Equipment Management ✅ COMPLETE
+- [x] GET /api/equipment - List all equipment (filtered by company)
+- [x] POST /api/equipment - Create new equipment
+- [x] GET /api/equipment/:id - Get single equipment
+- [x] PUT /api/equipment/:id - Update equipment
+- [x] DELETE /api/equipment/:id - Soft delete equipment
+- [x] POST /api/equipment/:id/restore - Restore deleted equipment
+
+**Fields Supported:**
+- Required: `name`, `serial_number`
+- Optional: `type`, `condition` (enum: 'excellent', 'good', 'fair', 'poor'), `notes`
+- System: `company_id`, `is_deleted`, timestamps
+- Unique constraint: `serial_number` per company
+
+**Security:**
+- All endpoints require authentication (verifyToken middleware)
+- All queries automatically filtered by `req.user.company_id` (multi-tenant isolation)
+- Duplicate serial number validation (returns 400 error)
+- Condition field validation against allowed values
 
 ### Phase 5: Bookings Management ⏳ TODO
 - [ ] CRUD endpoints for bookings
@@ -116,7 +132,6 @@ Frontend Backbone collections use `parse(response)` to extract `response.data`.
 - None currently
 
 ### Next Steps
-1. Build Equipment CRUD endpoints
-2. Build Bookings CRUD endpoints with conflict detection
-3. Add validation and error handling improvements
-4. Add database seeders for testing
+1. Build Bookings CRUD endpoints with conflict detection
+2. Add validation and error handling improvements
+3. Add database seeders for testing
