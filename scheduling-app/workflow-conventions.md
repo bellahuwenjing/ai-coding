@@ -13,33 +13,40 @@ This document defines the workflow preferences and conventions for this project.
 **Purpose:** Maintain a running log of all user prompts during the current session to prevent loss of context during mode transitions.
 
 **Format:**
+
 - Log each user prompt immediately when received
 - Use simple timestamp or sequential numbering
 - Record user's **exact words** without interpretation
 - Keep it simple - just the raw prompts, no responses needed
 
 **Timing:**
+
 - Log user prompts **as they arrive** during the session
 - Especially critical before entering plan mode (to capture the triggering prompt)
 - Continue logging throughout plan mode discussions
 - This ensures prompts aren't lost during mode transitions or context compression
 
 **Usage:**
+
 - When updating `prompt-history.md`, reference `session-chat-log.md` to retrieve exact user words
 - User can also provide prompts from their chat history (up/down arrows) if needed
 - Clear or archive the log at the end of major sessions
 
 **Example:**
+
 ```markdown
 # Session Chat Log - January 26, 2026
 
 ## Prompt 1
+
 With the current design, users and people are separate entities. However, people are essentially member users who can be assigned to jobs. Can you simplify the structure and use person model/collection and api enpoint for users? Admin users can be hidden from the resource list.
 
 ## Prompt 2
+
 [clarification during plan mode]
 
 ## Prompt 3
+
 Implement the following plan: [plan text]
 ```
 
@@ -48,20 +55,24 @@ Implement the following plan: [plan text]
 **Purpose:** Track the evolution of the SchedulePro product through prompts and responses.
 
 **Format:**
+
 - Record user's **exact words** (quoted with `>`)
 - Include a paraphrased summary of the response
 - Number prompts sequentially within each session
 - Include context when helpful (e.g., what files were updated, what changed)
 
 **Timing:**
+
 - Update during plan mode **before exiting** to capture original user requests
 - Update after significant work is completed in regular mode
 
 **Example:**
+
 ```markdown
 ### Prompt 23
 
 **User (exact words):**
+
 > Next look at @..\docs\prd\PRD-frontend.md and make changes according to...
 
 **Response:** Updated `docs/prd/PRD-frontend.md` with major simplifications...
@@ -72,15 +83,18 @@ Implement the following plan: [plan text]
 **Purpose:** Build a knowledge base about how Claude Code works, for user reference.
 
 **Format:**
+
 - Q&A style entries
 - Include the complete question and comprehensive answer
 - Provide practical examples and takeaways
 
 **Timing:**
+
 - Add entries when user learns something new about Claude's behavior
 - Add entries when user asks meta-questions about how Claude works
 
 **Organization:**
+
 - **New entries go at the top** (after the intro section)
 - Keep most recent discoveries easily accessible
 
@@ -89,11 +103,13 @@ Implement the following plan: [plan text]
 **Purpose:** Document user's workflow preferences and project-specific conventions.
 
 **Format:**
+
 - Organized by category (Documentation, Git, Code Style, etc.)
 - Clear, actionable guidelines
 - Examples where helpful
 
 **Organization:**
+
 - Latest conventions added at top of each section
 - Reference this file at the start of new sessions
 
@@ -106,32 +122,39 @@ Implement the following plan: [plan text]
 **Purpose:** Document all configuration requirements during the PRD phase, before implementation begins.
 
 **Always include in PRDs:**
+
 1. **Environment variable specifications** for both backend and frontend
 2. **Configuration file templates** (.env examples)
 3. **Security classifications** (public vs secret)
 4. **Deployment considerations** (local vs production differences)
 
 **Format - Add this section to PRDs:**
+
 ```markdown
 ## Environment Configuration
 
 ### Backend Environment Variables (.env)
-| Variable | Description | Example | Required | Secret |
-|----------|-------------|---------|----------|--------|
-| `VARIABLE_NAME` | Purpose | `example-value` | Yes/No | Yes/No |
+
+| Variable        | Description | Example         | Required | Secret |
+| --------------- | ----------- | --------------- | -------- | ------ |
+| `VARIABLE_NAME` | Purpose     | `example-value` | Yes/No   | Yes/No |
 
 ### Frontend Environment Variables (.env)
-| Variable | Description | Example | Required |
-|----------|-------------|---------|----------|
-| `VITE_VARIABLE_NAME` | Purpose | `example-value` | Yes/No |
+
+| Variable             | Description | Example         | Required |
+| -------------------- | ----------- | --------------- | -------- |
+| `VITE_VARIABLE_NAME` | Purpose     | `example-value` | Yes/No   |
 
 ### .env Template Files
+
 Provide starter templates for:
+
 - `.env.example` (backend)
 - `.env.example` (frontend)
 ```
 
 **Suggested prompt for PRD creation:**
+
 ```
 Create a PRD for [feature/project name]. Include:
 1. Technical requirements and architecture
@@ -145,6 +168,7 @@ Create a PRD for [feature/project name]. Include:
 ```
 
 **Benefits:**
+
 - Smooth deployment process (no missing config surprises)
 - Clear security boundaries (know what's secret vs public)
 - Better local development setup instructions
@@ -157,6 +181,7 @@ Create a PRD for [feature/project name]. Include:
 ### Before Entering Plan Mode
 
 **Critical action to prevent prompt loss:**
+
 1. **Immediately log the triggering user prompt to `session-chat-log.md`** before entering plan mode
    - This preserves the original question that started the planning discussion
    - Prevents loss during mode transitions
@@ -164,6 +189,7 @@ Create a PRD for [feature/project name]. Include:
 ### Before Exiting Plan Mode
 
 **Always perform these actions:**
+
 1. Update `prompt-history.md` with user's exact words from `session-chat-log.md` or by asking user to provide from their chat history
 2. Reference transcript files in the plan document for context preservation
 3. Ensure plan includes clear implementation steps
@@ -171,6 +197,7 @@ Create a PRD for [feature/project name]. Include:
 ### Starting Implementation
 
 **After exiting plan mode:**
+
 1. Read the transcript file if referenced in the plan
 2. Check for any context that might have been lost in session transition
 
@@ -181,6 +208,7 @@ Create a PRD for [feature/project name]. Include:
 ### Starting New Sessions
 
 **Recommended approach:**
+
 - Reference `@workflow-conventions.md` at session start
 - Reference `@how-claude-works.md` if user needs workflow reminders
 - State the task clearly: "Continue working on SchedulePro following our established conventions"
@@ -188,10 +216,12 @@ Create a PRD for [feature/project name]. Include:
 ### During Long Sessions
 
 **If context is getting compressed:**
+
 - User may reference documentation files to reinforce conventions
 - Claude should proactively read documentation files when uncertain about preferences
 
 **Maintain session chat log:**
+
 - Log each user prompt to `session-chat-log.md` as it arrives
 - This prevents prompt loss during mode transitions
 - Especially important before entering plan mode
@@ -199,6 +229,7 @@ Create a PRD for [feature/project name]. Include:
 ### Ending Sessions
 
 **Before ending a major work session:**
+
 - Ensure all prompts from `session-chat-log.md` have been properly documented in `prompt-history.md`
 - Clear or archive `session-chat-log.md` to start fresh next time
 - The session chat log is temporary; prompt history is permanent
@@ -214,11 +245,13 @@ _(To be added as conventions are established during development)_
 ## Communication Preferences
 
 ### Response Style
+
 - Concise and direct
 - No unnecessary emojis unless explicitly requested
 - Professional and objective tone
 
 ### Tool Usage
+
 - Prefer specialized tools over bash commands for file operations
 - Use Read instead of cat, Edit instead of sed, Write instead of echo
 - Make parallel tool calls when operations are independent
@@ -226,23 +259,27 @@ _(To be added as conventions are established during development)_
 ### Development Server Management
 
 **Server Startup Preference:**
+
 - **Never start development servers in background** (frontend or backend)
 - User prefers to start servers manually in their own terminal windows
 - Provides better visibility and control over running processes
 - Avoids confusion with multiple server instances
 
 **When helping with server issues:**
+
 - Provide commands for user to run in their terminal
 - Help diagnose issues by reading logs/output
 - Kill stray processes if needed, but let user restart servers themselves
 
 **Example - Don't do this:**
+
 ```bash
 # ❌ Don't start servers in background
 cd schpro-backend && npm start  # run_in_background: true
 ```
 
 **Example - Do this instead:**
+
 ```markdown
 Run this command in your terminal:
 \`\`\`bash
@@ -253,4 +290,150 @@ npm start
 
 ---
 
-_Last updated: January 2026_
+## Skills & Automation
+
+### What Are Skills?
+
+**Skills** are reusable, templated workflows in Claude Code that automate repetitive tasks. They're invoked with `/skillname` commands or automatically by Claude when relevant.
+
+**Common use cases:**
+
+- Code generation (e.g., `/add-endpoint` for creating REST endpoints)
+- Git operations (e.g., `/commit` for creating commits)
+- Project-specific workflows (deploys, migrations, testing)
+- Document generation (PDF, DOCX, etc.)
+
+### Skill File Format
+
+Skills use **`SKILL.md`** files with YAML frontmatter (NOT `skill.json`):
+
+```markdown
+---
+name: skill-name
+description: What the skill does
+tools: Read, Write, Edit, Bash, AskUserQuestion
+disable-model-invocation: false
+---
+
+# Skill Name
+
+[Instructions for Claude in markdown format...]
+```
+
+**Key YAML fields:**
+
+- `name:` - Skill identifier (used in `/skillname` command)
+- `description:` - What the skill does (helps Claude decide when to use it)
+- `tools:` - Which tools the skill can use
+- `disable-model-invocation:` - Set to `true` for user-only skills (side effects like deploy, commit)
+- `user-invocable:` - Set to `false` for Claude-only skills (background knowledge)
+
+### Skill Location
+
+Skills can be placed in two locations:
+
+1. **Project-specific**: `.claude/skills/<skill-name>/SKILL.md`
+   - Committed to repo, shared with team
+   - Only available when working in that directory
+   - Best for project-specific patterns
+
+2. **Global**: `~/.claude/skills/<skill-name>/SKILL.md`
+   - Available across all projects
+   - Personal productivity tools
+
+**Important:** Claude Code scans for skills in the **current working directory's** `.claude/skills/` folder. If your skill is in `project/.claude/skills/` but you're working in a parent directory, it won't be found.
+
+### How to Invoke Skills
+
+**Option 1: Explicit command**
+
+```bash
+/skillname [arguments]
+
+# Examples:
+/add-endpoint customer
+/commit
+```
+
+**Option 2: Natural language**
+
+```
+"create customer endpoints"
+"add a booking resource"
+```
+
+Claude will automatically use the skill if it's registered and relevant.
+
+**Check available skills:**
+
+```bash
+/skills
+```
+
+### Creating New Skills: Research First!
+
+**❌ Common mistake:** Assuming skill format without checking existing patterns.
+
+**✅ Best practice:** Always research existing skills before creating new ones.
+
+**Recommended approach when creating skills:**
+
+1. **Research existing patterns first:**
+
+   ```
+   "Check how existing Claude Code skills are structured,
+    then create a skill for [task]"
+   ```
+
+2. **Two-step process:**
+
+   ```
+   Step 1: "Show me how Claude Code skills are formatted"
+   Step 2: "Create a skill for [task] using that format"
+   ```
+
+3. **Reference examples:**
+   ```
+   "Look at skills in ~/.claude/plugins/ to understand the format,
+    then create a skill for [task]"
+   ```
+
+**Why this matters:**
+
+- Prevents creating skills in wrong format (e.g., `skill.json` instead of `SKILL.md`)
+- Ensures consistency with Claude Code's expectations
+- Saves time by getting it right the first time
+- Claude should proactively search for existing skill patterns before creating new ones
+
+### Project Skills
+
+**SchedulePro has the following project-specific skills:**
+
+1. **`/add-endpoint`** - Generate REST API endpoints
+   - Location: `scheduling-app/.claude/skills/add-endpoint/SKILL.md`
+   - Creates controller, routes, and registers in app.js
+   - Follows multi-tenant, soft-delete patterns
+   - Usage: `/add-endpoint <resource-name>` (e.g., `/add-endpoint customer`)
+
+_(Add new skills to this list as they're created)_
+
+### Skill Development Guidelines
+
+**When Claude creates skills:**
+
+1. ✅ **Research first** - Check existing skill formats before creating
+2. ✅ **Use SKILL.md** - Not skill.json or other formats
+3. ✅ **Include YAML frontmatter** - Required metadata
+4. ✅ **Reference existing code** - Skills should read current patterns before generating
+5. ✅ **Provide clear instructions** - Claude needs detailed steps to follow
+6. ✅ **Test after creation** - Run `/skills` to verify it's registered
+
+**When user requests skills:**
+
+- User can request naturally ("create a skill for X")
+- Claude should proactively research format first
+- If uncertain, explicitly state: "Let me check existing skill patterns first"
+
+---
+
+_Last updated: February 2026_
