@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth.routes');
 const peopleRoutes = require('./routes/people.routes');
 const vehiclesRoutes = require('./routes/vehicles.routes');
 const equipmentRoutes = require('./routes/equipment.routes');
+const bookingRoutes = require('./routes/booking.routes');
 
 // Middleware
 app.use(cors({
@@ -23,7 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/equipment', equipmentRoutes);
-// app.use('/api/bookings', bookingsRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

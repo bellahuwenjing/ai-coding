@@ -1,0 +1,13 @@
+{
+  "name": "add-endpoint",
+  "version": "1.0.0",
+  "description": "Generate a new REST endpoint following SchedulePro backend patterns (controller + routes + registration)",
+  "author": "SchedulePro",
+  "prompt_file": "prompt.md",
+  "arguments": {
+    "resource_name": {
+      "description": "Singular resource name (e.g., 'booking', 'customer')",
+      "required": true
+    }
+  }
+}
