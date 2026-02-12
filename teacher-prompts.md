@@ -105,14 +105,16 @@ Did you suggest me to use render cli and use the render.yml? I’m not using cli
 
 now tell me what env var I should add to my deployed frontend on Vercel. My deployed backend url is https://demo-project-123.onrender.com/
 
-** help me verify that frontend is using env vars to call the correct backend.
+\*\* help me verify that frontend is using env vars to call the correct backend.
 
 i have verified my deployed backend endpoint works at .... and i've set env var VITE_API_BASE_URL = ...for my deployed frontend.
-
-
 
 ---
 
 analysis existing kiwicar-backend codebase; create a skill to add a new endpoint that aligns with our existing codebase
+
+First read docs/prd/backend/prd.md to understand our backend server, kiwicar-backend. We don't have any unit testing yet. First set up unit test foundation, then pick 1-2 most critical service and write unit tests for them. Install any dependency if helpful.
+
+---
 
 First read docs/prd/backend/prd.md to understand our backend server, kiwicar-backend. We don't have any unit testing yet. First set up unit test foundation, then pick 1-2 most critical service and write unit tests for them. Install any dependency if helpful.

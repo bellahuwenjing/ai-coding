@@ -106,6 +106,44 @@ ALTER TABLE people ALTER COLUMN user_id DROP NOT NULL;
 - [ ] Conflict detection library
 - [ ] Fields: title, location, start_time, end_time, description, status
 
+### Phase 6: Unit Testing ✅ COMPLETE
+
+**Framework:** Jest + Supertest (no real DB required - Supabase is fully mocked)
+
+**Test commands:**
+```bash
+npm test              # run all tests once
+npm run test:watch    # re-run on file changes
+npm run test:coverage # show coverage report
+```
+
+**Test files:**
+```
+src/__tests__/
+  middleware/
+    auth.middleware.test.js   (7 tests)
+  controllers/
+    people.controller.test.js (14 tests)
+```
+
+**auth.middleware.test.js (7 tests):**
+- Missing / malformed Authorization header → 401
+- Invalid token from Supabase → 401
+- Valid token → attaches `user`, `company_id`, `person_id` to req
+- Valid token but no person record → proceeds without `company_id`
+
+**people.controller.test.js (14 tests):**
+- `getAll` → success, missing company_id (400), DB error (500)
+- `create` → success (201), missing name (400), missing email (400), DB error (500)
+- `update` → success (200), missing fields (400), not found (404)
+- `softDelete` → success (200), not found (404)
+- `restore` → success (200), not found (404)
+
+**Mocking strategy:**
+- `jest.mock('../../services/supabase.service')` - no real Supabase calls
+- Controller tests use a minimal Express app with injected `req.user` to bypass auth middleware
+- Supabase query builder chain (`.from().select().eq().order()`) mocked with `mockReturnThis()` pattern
+
 ---
 
 ## Technical Notes
@@ -133,5 +171,5 @@ Frontend Backbone collections use `parse(response)` to extract `response.data`.
 
 ### Next Steps
 1. Build Bookings CRUD endpoints with conflict detection
-2. Add validation and error handling improvements
-3. Add database seeders for testing
+2. Add unit tests for vehicles and equipment controllers
+3. Add validation and error handling improvements
