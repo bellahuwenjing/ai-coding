@@ -1018,6 +1018,9 @@ while the Smart Scheduling Assistant takes unstructured natural language and han
 was more of an add-on to the existing conflict detection rather than a standalone feature.
 was more of an add-on to the existing conflict detection rather than a standalone feature.
 
+
+all three ideas can be achieved purely by the backend without AI. do you have any more sophisticated use that's suitable for using AI?
+
 ● Good challenge. Let me think through this honestly before asking you anything.
 
 You're right — all three were essentially algorithmic:

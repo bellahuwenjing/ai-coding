@@ -53,6 +53,123 @@ This feature bridges the gap between "I need a welder and a van on Tuesday" and 
 - Reliable with explicit JSON schemas in the system prompt
 - Widely documented and stable API
 
+### 2.1 AI vs. Algorithmic Approach (Technical Clarification)
+
+**What AI actually does in this design:**
+
+AI is **only** responsible for **natural language parsing** — converting unstructured user input into a structured JSON object with `title`, `start_time`, `end_time`, and `requirements`. This is a single OpenAI API call.
+
+**What pure code (non-AI algorithms) does:**
+
+Everything else is traditional programming:
+
+1. **Availability checking** — SQL time overlap query:
+   ```sql
+   WHERE bookings.start_time < requested_end_time
+     AND bookings.end_time > requested_start_time
+   ```
+   Returns IDs of booked resources; the rest are marked as available. This is standard database querying.
+
+2. **Scoring/matching** — Simple keyword-based arithmetic:
+   - **People**: Count how many required skills appear in the person's `skills[]` array → `(matched_skills / total_required) × 40 points`
+   - **Vehicles**: Check if type keyword ("van", "truck") appears as substring in `name`, `make`, `model`, or `notes` → up to 70 points
+   - **Equipment**: Same keyword matching for `type` field + condition quality weighting
+
+   This is basic **substring matching** and **weighted scoring**, not sophisticated matching.
+
+3. **Ranking** — JavaScript array sort: available resources first, then by `match_score` descending.
+
+**Why this matters:**
+
+This design is **AI-light**. The "intelligence" in resource matching is minimal — it's keyword search with a scoring formula. The AI layer adds natural language convenience but doesn't power the core matching logic.
+
+---
+
+**Alternative approaches (more sophisticated):**
+
+### Option A: Constraint Satisfaction Programming (CSP)
+
+**What is CSP?**
+Constraint Satisfaction Programming solves optimization problems by defining:
+- **Variables**: Which person/vehicle/equipment to assign to each booking
+- **Domains**: All available resources per variable
+- **Constraints**: Time conflicts, skill requirements, capacity limits, budget caps, workload balancing
+- **Objective**: Minimize cost, maximize utilization, or satisfy other business rules
+
+CSP solvers (e.g., Google OR-Tools, `constraint` npm package) find optimal assignments that satisfy all constraints.
+
+**Where CSP makes sense:**
+- **Batch scheduling** — "I have 10 jobs next week; auto-assign all resources optimally"
+- **Conflict resolution** — "Resource A is unavailable; find minimal reassignments to fix all conflicts"
+- **Global optimization** — "Schedule 50 bookings to minimize total labor cost and balance workload across staff"
+
+**Why this design doesn't use CSP:**
+The `suggest` endpoint handles **one booking at a time**, not multi-booking optimization. CSP is overkill for "show me available resources for this single request." CSP would be appropriate for a future feature like **"Auto-Schedule All Pending Jobs"** or **"Optimize This Week's Schedule."**
+
+---
+
+### Option B: Semantic Matching via AI Embeddings
+
+Instead of keyword matching, use **vector embeddings** to find semantically similar skills/requirements:
+
+1. Embed all skills, certifications, vehicle types, equipment types into vector space (via OpenAI embeddings API or similar)
+2. Embed the user's requirements
+3. Use **cosine similarity** to find matches
+
+**Example benefit:**
+"CDL Class A license" semantically matches "commercial truck driver" even though they share no keywords.
+
+**Why this is genuinely AI-native:**
+Captures semantic meaning, handles synonyms and implicit relationships. This is what AI does well that keyword search cannot.
+
+**Trade-offs:**
+- Slower (embedding API calls or local model inference)
+- Requires vector storage or runtime embedding generation
+- More sophisticated but adds complexity
+
+---
+
+### Option C: AI-Powered Scoring with Contextual Reasoning
+
+Instead of hardcoded scoring formulas, send the full context (all available resources, booking requirements, historical booking data) to the LLM and ask it to **score and rank resources with reasoning**.
+
+**Example:**
+```
+"Alice: 95/100 — Holds required welding certification and was assigned to 4 similar
+bridge inspection jobs in the past 6 months with no reported issues. Note: she has
+a 30-minute gap before a 3pm job; verify travel time from the bridge site."
+```
+
+**Why this is genuinely AI-native:**
+The LLM can consider subtle factors (travel time between jobs, historical performance, certification expiry dates, workload fatigue) that are hard to encode in fixed rules.
+
+**Trade-offs:**
+- Expensive (one LLM call per resource or one large context call)
+- Slower (LLM inference time)
+- Less predictable (AI reasoning can vary)
+
+---
+
+### Option D: Hybrid Approach
+
+Combine CSP for **constraint satisfaction** with AI for **interpretation and explanation**:
+
+1. Use CSP to find all feasible resource assignments that satisfy hard constraints
+2. Use AI to rank/explain them in natural language with business context
+
+This leverages the strengths of both: CSP for optimization, AI for communication.
+
+---
+
+**Current MVP decision:**
+
+The PRD as written uses **keyword matching + arithmetic scoring** (simple, fast, predictable). AI is only used for natural language parsing. This is sufficient for MVP but is not a sophisticated scheduling algorithm.
+
+**Future enhancement paths:**
+- Upgrade to **semantic embeddings** (Option B) for better skill matching
+- Add **CSP-based batch scheduling** (Option A) for multi-booking optimization
+- Use **AI for contextual scoring** (Option C) to capture nuanced factors
+
 ---
 
 ## 3. New Files
