@@ -1000,6 +1000,7 @@ SUPABASE_SERVICE_ROLE_KEY = your-service-role-key
 ---
 
 ### Prompt 33
+
 help me plan a new ai-related feature in my backend for the most critical service of the app.
 
 AI feature options
@@ -1017,7 +1018,6 @@ The key difference from what you chose: the Resource Recommender takes structure
 while the Smart Scheduling Assistant takes unstructured natural language and handles the parsing itself. The Conflict Resolution Advisor
 was more of an add-on to the existing conflict detection rather than a standalone feature.
 was more of an add-on to the existing conflict detection rather than a standalone feature.
-
 
 all three ideas can be achieved purely by the backend without AI. do you have any more sophisticated use that's suitable for using AI?
 

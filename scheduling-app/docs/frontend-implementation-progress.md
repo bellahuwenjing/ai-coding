@@ -846,9 +846,18 @@ defaults: {
 - ✅ Real database persistence (Supabase)
 - ✅ Multi-tenant data isolation
 
+**Working Features (as of Feb 6):**
+- ✅ User registration and login
+- ✅ JWT authentication
+- ✅ People CRUD operations
+- ✅ Real database persistence (Supabase)
+- ✅ Multi-tenant data isolation
+
+**Completed Since Feb 6:**
+- ✅ Vehicles CRUD endpoints (backend complete)
+- ✅ Equipment CRUD endpoints (backend complete)
+
 **Pending:**
-- ⏳ Vehicles CRUD endpoints (backend not implemented yet)
-- ⏳ Equipment CRUD endpoints (backend not implemented yet)
 - ⏳ Bookings CRUD endpoints (backend not implemented yet)
 
 **Running Configuration:**
@@ -861,3 +870,77 @@ defaults: {
 *Document Version: 2.0*
 *Created: January 30, 2026, 9:00 PM*
 *Last Updated: February 6, 2026, 10:00 PM*
+
+---
+
+---
+
+## 📅 Session 3: Booking Backend Fix (February 21, 2026)
+
+### Problem Identified
+
+When creating or updating a booking, the frontend sends assigned resources in the payload:
+
+```json
+{
+  "title": "Site Inspection",
+  "start_time": "...",
+  "end_time": "...",
+  "people": ["uuid1", "uuid2"],
+  "vehicles": ["uuid3"],
+  "equipment": []
+}
+```
+
+However, the backend `create` and `update` handlers were only persisting core booking fields (`title`, `location`, `start_time`, `end_time`, `notes`) and silently ignoring `people`, `vehicles`, and `equipment`. Junction table rows were never written. Likewise, `getAll` and `getOne` only queried the `bookings` table, so assigned resources were never returned.
+
+### Backend Fix Applied ✅
+
+**File changed:** `schpro-backend/src/controllers/booking.controller.js`
+
+**Changes:**
+
+- Added `BOOKING_SELECT` constant — Supabase nested select string that joins all three junction tables in a single query
+- Added `formatBooking()` helper — strips nested junction arrays from the raw row and maps them to flat ID arrays (`people`, `vehicles`, `equipment`) matching what the Backbone `Booking` model expects
+- Added `insertResources()` helper — bulk-inserts rows into `booking_people`, `booking_vehicles`, `booking_equipment` in parallel
+- Added `replaceResources()` helper — deletes all existing junction rows for a booking then calls `insertResources` (used on update)
+- **`getAll`** — now uses `BOOKING_SELECT`; results passed through `formatBooking`
+- **`getOne`** — now uses `BOOKING_SELECT`; result passed through `formatBooking`
+- **`create`** — now extracts `people`, `vehicles`, `equipment` from `req.body` and calls `insertResources` after the booking row is created
+- **`update`** — now extracts `people`, `vehicles`, `equipment` from `req.body` and calls `replaceResources` after the booking row is updated
+
+### Junction Table Schema
+
+Junction tables confirmed to have no `company_id` (multi-tenancy enforced at the `bookings` level):
+
+| Table | Columns |
+|-------|---------|
+| `booking_people` | `booking_id`, `person_id`, `created_at` |
+| `booking_vehicles` | `booking_id`, `vehicle_id`, `created_at` |
+| `booking_equipment` | `booking_id`, `equipment_id`, `created_at` |
+
+### Current Status
+
+**Working Features:**
+- ✅ User registration and login
+- ✅ JWT authentication
+- ✅ People CRUD (real Supabase)
+- ✅ Vehicles CRUD (real Supabase)
+- ✅ Equipment CRUD (real Supabase)
+- ✅ Bookings CRUD — core fields (real Supabase)
+- ✅ Booking resource assignment — persists to junction tables and returns in response
+
+**Pending:**
+- ⏳ Booking tests (backend unit tests for booking controller not yet written)
+- ⏳ Conflict detection (not yet implemented)
+
+**Running Configuration:**
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3000
+- Database: Supabase PostgreSQL (project active)
+
+---
+
+*Document Version: 3.0*
+*Created: January 30, 2026, 9:00 PM*
+*Last Updated: February 21, 2026*

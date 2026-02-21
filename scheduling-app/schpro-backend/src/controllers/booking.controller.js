@@ -1,5 +1,61 @@
 const { supabaseAdmin } = require('../services/supabase.service');
 
+const BOOKING_SELECT = `*, booking_people(person_id), booking_vehicles(vehicle_id), booking_equipment(equipment_id)`;
+
+function formatBooking({ booking_people, booking_vehicles, booking_equipment, ...booking }) {
+  return {
+    ...booking,
+    people: (booking_people || []).map(r => r.person_id),
+    vehicles: (booking_vehicles || []).map(r => r.vehicle_id),
+    equipment: (booking_equipment || []).map(r => r.equipment_id),
+  };
+}
+
+async function insertResources(bookingId, people, vehicles, equipment) {
+  const inserts = [];
+
+  if (people?.length) {
+    inserts.push(
+      supabaseAdmin.from('booking_people').insert(
+        people.map(personId => ({ booking_id: bookingId, person_id: personId }))
+      )
+    );
+  }
+
+  if (vehicles?.length) {
+    inserts.push(
+      supabaseAdmin.from('booking_vehicles').insert(
+        vehicles.map(vehicleId => ({ booking_id: bookingId, vehicle_id: vehicleId }))
+      )
+    );
+  }
+
+  if (equipment?.length) {
+    inserts.push(
+      supabaseAdmin.from('booking_equipment').insert(
+        equipment.map(equipmentId => ({ booking_id: bookingId, equipment_id: equipmentId }))
+      )
+    );
+  }
+
+  if (inserts.length) {
+    const results = await Promise.all(inserts);
+    for (const { error } of results) {
+      if (error) throw error;
+    }
+  }
+}
+
+async function replaceResources(bookingId, people, vehicles, equipment) {
+  await Promise.all([
+    supabaseAdmin.from('booking_people').delete().eq('booking_id', bookingId),
+    supabaseAdmin.from('booking_vehicles').delete().eq('booking_id', bookingId),
+    supabaseAdmin.from('booking_equipment').delete().eq('booking_id', bookingId),
+  ]);
+
+  await insertResources(bookingId, people, vehicles, equipment);
+}
+
 /**
  * Get all bookings for the user's company
  * GET /api/bookings
@@ -15,10 +71,9 @@ exports.getAll = async (req, res) => {
       });
     }
 
-    // Get all non-deleted bookings for this company
     const { data: bookings, error } = await supabaseAdmin
       .from('bookings')
-      .select('*')
+      .select(BOOKING_SELECT)
       .eq('company_id', companyId)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false });
@@ -33,7 +88,7 @@ exports.getAll = async (req, res) => {
 
     res.json({
       status: 'success',
-      data: bookings
+      data: bookings.map(formatBooking)
     });
 
   } catch (error) {
@@ -56,7 +111,7 @@ exports.getOne = async (req, res) => {
 
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
-      .select('*')
+      .select(BOOKING_SELECT)
       .eq('id', id)
       .eq('company_id', companyId)
       .eq('is_deleted', false)
@@ -71,7 +126,7 @@ exports.getOne = async (req, res) => {
 
     res.json({
       status: 'success',
-      data: booking
+      data: formatBooking(booking)
     });
 
   } catch (error) {
@@ -89,7 +144,7 @@ exports.getOne = async (req, res) => {
  */
 exports.create = async (req, res) => {
   try {
-    const { title, location, start_time, end_time, notes } = req.body;
+    const { title, location, start_time, end_time, notes, people, vehicles, equipment } = req.body;
     const companyId = req.user.company_id;
 
     // Validate required fields
@@ -108,20 +163,17 @@ exports.create = async (req, res) => {
       });
     }
 
-    // Build insert object
-    const insertData = {
-      company_id: companyId,
-      title,
-      location: location || null,
-      start_time,
-      end_time,
-      notes: notes || null
-    };
-
     // Create booking
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
-      .insert(insertData)
+      .insert({
+        company_id: companyId,
+        title,
+        location: location || null,
+        start_time,
+        end_time,
+        notes: notes || null
+      })
       .select()
       .single();
 
@@ -133,10 +185,18 @@ exports.create = async (req, res) => {
       });
     }
 
+    // Persist assigned resources to junction tables
+    await insertResources(booking.id, people, vehicles, equipment);
+
     res.status(201).json({
       status: 'success',
       message: 'Booking created successfully',
-      data: booking
+      data: {
+        ...booking,
+        people: people || [],
+        vehicles: vehicles || [],
+        equipment: equipment || [],
+      }
     });
 
   } catch (error) {
@@ -155,7 +215,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, location, start_time, end_time, notes } = req.body;
+    const { title, location, start_time, end_time, notes, people, vehicles, equipment } = req.body;
     const companyId = req.user.company_id;
 
     // Validate required fields
@@ -174,20 +234,17 @@ exports.update = async (req, res) => {
       });
     }
 
-    // Build update object
-    const updateData = {
-      title,
-      location: location || null,
-      start_time,
-      end_time,
-      notes: notes || null,
-      updated_at: new Date().toISOString()
-    };
-
-    // Update booking (only if it belongs to user's company)
+    // Update booking
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
-      .update(updateData)
+      .update({
+        title,
+        location: location || null,
+        start_time,
+        end_time,
+        notes: notes || null,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .eq('company_id', companyId)
       .eq('is_deleted', false)
@@ -211,10 +268,18 @@ exports.update = async (req, res) => {
       });
     }
 
+    // Replace junction records with the new resource assignments
+    await replaceResources(id, people, vehicles, equipment);
+
     res.json({
       status: 'success',
       message: 'Booking updated successfully',
-      data: booking
+      data: {
+        ...booking,
+        people: people || [],
+        vehicles: vehicles || [],
+        equipment: equipment || [],
+      }
     });
 
   } catch (error) {
@@ -235,7 +300,6 @@ exports.softDelete = async (req, res) => {
     const { id } = req.params;
     const companyId = req.user.company_id;
 
-    // Soft delete by setting is_deleted flag
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
       .update({
@@ -279,7 +343,6 @@ exports.restore = async (req, res) => {
     const { id } = req.params;
     const companyId = req.user.company_id;
 
-    // Restore by unsetting is_deleted flag
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
       .update({
