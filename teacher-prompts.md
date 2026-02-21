@@ -118,3 +118,11 @@ First read docs/prd/backend/prd.md to understand our backend server, kiwicar-bac
 ---
 
 First read docs/prd/backend/prd.md to understand our backend server, kiwicar-backend. We don't have any unit testing yet. First set up unit test foundation, then pick 1-2 most critical service and write unit tests for them. Install any dependency if helpful.
+
+
+
+Help me plan a new ai-related feature in my backend. I have an endpoint /luxury-vehicle that queries luxury vehicles to the user. Now I want ai to generate a special description for each luxury vehicle retrieved to promote this vehicle. 
+
+I plan to connect to openai api and use their LLM to generate this message.
+
+First read docs/prd/backend/prd.md and kiwicar-backend to understand my backend and related endpoint; then write a prd for this new feature, put under docs/prd/backend/features
