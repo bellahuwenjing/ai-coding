@@ -11,6 +11,64 @@ function formatBooking({ booking_people, booking_vehicles, booking_equipment, ..
   };
 }
 
+/**
+ * Validate requirements structure
+ * Returns error message if invalid, null if valid
+ */
+function validateRequirements(requirements) {
+  if (!requirements) return null; // Requirements are optional
+
+  if (typeof requirements !== 'object' || Array.isArray(requirements)) {
+    return 'Requirements must be an object';
+  }
+
+  const { people = [], vehicles = [], equipment = [] } = requirements;
+
+  // Validate people requirements
+  if (!Array.isArray(people)) {
+    return 'Requirements.people must be an array';
+  }
+  for (const req of people) {
+    if (!req.quantity || req.quantity < 1) {
+      return 'People requirement quantity must be at least 1';
+    }
+    if (req.skills && !Array.isArray(req.skills)) {
+      return 'People requirement skills must be an array';
+    }
+    if (req.certifications && !Array.isArray(req.certifications)) {
+      return 'People requirement certifications must be an array';
+    }
+  }
+
+  // Validate vehicle requirements
+  if (!Array.isArray(vehicles)) {
+    return 'Requirements.vehicles must be an array';
+  }
+  for (const req of vehicles) {
+    if (!req.quantity || req.quantity < 1) {
+      return 'Vehicle requirement quantity must be at least 1';
+    }
+    if (req.min_capacity && typeof req.min_capacity !== 'number') {
+      return 'Vehicle min_capacity must be a number';
+    }
+  }
+
+  // Validate equipment requirements
+  if (!Array.isArray(equipment)) {
+    return 'Requirements.equipment must be an array';
+  }
+  for (const req of equipment) {
+    if (!req.quantity || req.quantity < 1) {
+      return 'Equipment requirement quantity must be at least 1';
+    }
+    if (req.min_condition && !['excellent', 'good', 'fair', 'poor'].includes(req.min_condition)) {
+      return 'Equipment min_condition must be excellent, good, fair, or poor';
+    }
+  }
+
+  return null; // Valid
+}
+
 async function insertResources(bookingId, people, vehicles, equipment) {
   const inserts = [];
 
@@ -144,7 +202,7 @@ exports.getOne = async (req, res) => {
  */
 exports.create = async (req, res) => {
   try {
-    const { title, location, start_time, end_time, notes, people, vehicles, equipment } = req.body;
+    const { title, location, start_time, end_time, notes, requirements, people, vehicles, equipment } = req.body;
     const companyId = req.user.company_id;
 
     // Validate required fields
@@ -163,6 +221,15 @@ exports.create = async (req, res) => {
       });
     }
 
+    // Validate requirements if provided
+    const requirementsError = validateRequirements(requirements);
+    if (requirementsError) {
+      return res.status(400).json({
+        status: 'error',
+        message: requirementsError
+      });
+    }
+
     // Create booking
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
@@ -172,7 +239,8 @@ exports.create = async (req, res) => {
         location: location || null,
         start_time,
         end_time,
-        notes: notes || null
+        notes: notes || null,
+        requirements: requirements || {}
       })
       .select()
       .single();
@@ -215,7 +283,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, location, start_time, end_time, notes, people, vehicles, equipment } = req.body;
+    const { title, location, start_time, end_time, notes, requirements, people, vehicles, equipment } = req.body;
     const companyId = req.user.company_id;
 
     // Validate required fields
@@ -234,17 +302,34 @@ exports.update = async (req, res) => {
       });
     }
 
+    // Validate requirements if provided
+    const requirementsError = validateRequirements(requirements);
+    if (requirementsError) {
+      return res.status(400).json({
+        status: 'error',
+        message: requirementsError
+      });
+    }
+
+    // Build update object - only include requirements if it's explicitly provided
+    const updateData = {
+      title,
+      location: location || null,
+      start_time,
+      end_time,
+      notes: notes || null,
+      updated_at: new Date().toISOString()
+    };
+
+    // Only update requirements if explicitly provided (allows omitting it in updates)
+    if (requirements !== undefined) {
+      updateData.requirements = requirements;
+    }
+
     // Update booking
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
-      .update({
-        title,
-        location: location || null,
-        start_time,
-        end_time,
-        notes: notes || null,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('company_id', companyId)
       .eq('is_deleted', false)
