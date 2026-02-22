@@ -39,6 +39,32 @@ export default function BookingsList({ onEdit }) {
     }).join(', ')
   }
 
+  // Helper to format requirements summary
+  const getRequirementsSummary = (requirements) => {
+    if (!requirements || (!requirements.people?.length && !requirements.vehicles?.length && !requirements.equipment?.length)) {
+      return null
+    }
+
+    const parts = []
+    if (requirements.people?.length > 0) {
+      const totalQty = requirements.people.reduce((sum, req) => sum + (req.quantity || 0), 0)
+      const roles = requirements.people.map(req => req.role || 'person').join(', ')
+      parts.push(`${totalQty} ${roles}`)
+    }
+    if (requirements.vehicles?.length > 0) {
+      const totalQty = requirements.vehicles.reduce((sum, req) => sum + (req.quantity || 0), 0)
+      const types = requirements.vehicles.map(req => req.type || 'vehicle').join(', ')
+      parts.push(`${totalQty} ${types}`)
+    }
+    if (requirements.equipment?.length > 0) {
+      const totalQty = requirements.equipment.reduce((sum, req) => sum + (req.quantity || 0), 0)
+      const types = requirements.equipment.map(req => req.type || 'equipment').join(', ')
+      parts.push(`${totalQty} ${types}`)
+    }
+
+    return parts.length > 0 ? `Needs: ${parts.join(', ')}` : null
+  }
+
   // Handle delete
   const handleDelete = async (booking) => {
     if (!window.confirm(`Are you sure you want to delete "${booking.get('title')}"?`)) {
@@ -159,6 +185,13 @@ export default function BookingsList({ onEdit }) {
                       {booking.get('notes') && (
                         <div className="mt-2 text-sm text-gray-600">
                           <span className="font-medium">Notes:</span> {booking.get('notes')}
+                        </div>
+                      )}
+
+                      {/* Requirements Summary */}
+                      {getRequirementsSummary(booking.get('requirements')) && (
+                        <div className="mt-2 text-sm text-gray-500 italic">
+                          📋 {getRequirementsSummary(booking.get('requirements'))}
                         </div>
                       )}
                     </div>

@@ -8,6 +8,7 @@ import Button from '../common/Button'
 import ErrorMessage from '../common/ErrorMessage'
 import LoadingSpinner from '../common/LoadingSpinner'
 import TransferList from './TransferList'
+import RequirementsSection from './RequirementsSection'
 
 export default function BookingForm({ booking, onCancel, onSave }) {
   const [peopleCollection] = useState(() => new PeopleCollection())
@@ -27,6 +28,11 @@ export default function BookingForm({ booking, onCancel, onSave }) {
     people: [],
     vehicles: [],
     equipment: [],
+    requirements: {
+      people: [],
+      vehicles: [],
+      equipment: []
+    }
   })
 
   const [errors, setErrors] = useState({})
@@ -60,6 +66,11 @@ export default function BookingForm({ booking, onCancel, onSave }) {
         people: booking.get('people') || [],
         vehicles: booking.get('vehicles') || [],
         equipment: booking.get('equipment') || [],
+        requirements: booking.get('requirements') || {
+          people: [],
+          vehicles: [],
+          equipment: []
+        }
       })
     }
   }, [booking])
@@ -77,6 +88,18 @@ export default function BookingForm({ booking, onCancel, onSave }) {
     if (errors.resources) {
       setErrors(prev => ({ ...prev, resources: null }))
     }
+  }
+
+  const handleRequirementsChange = (newRequirements) => {
+    setFormData(prev => ({ ...prev, requirements: newRequirements }))
+    // Clear requirements-related errors
+    const newErrors = { ...errors }
+    Object.keys(newErrors).forEach(key => {
+      if (key.startsWith('requirements.')) {
+        delete newErrors[key]
+      }
+    })
+    setErrors(newErrors)
   }
 
   const handleSubmit = async (e) => {
@@ -218,6 +241,13 @@ export default function BookingForm({ booking, onCancel, onSave }) {
                 placeholder="Additional details about the booking..."
               />
             </div>
+
+            {/* Requirements Section */}
+            <RequirementsSection
+              requirements={formData.requirements}
+              onChange={handleRequirementsChange}
+              errors={errors}
+            />
 
             {/* Resource Assignment */}
             <div className="mb-6">

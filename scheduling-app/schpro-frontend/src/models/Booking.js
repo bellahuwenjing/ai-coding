@@ -12,6 +12,11 @@ const Booking = Backbone.Model.extend({
     people: [],      // Array of person IDs
     vehicles: [],    // Array of vehicle IDs
     equipment: [],   // Array of equipment IDs
+    requirements: {  // Resource requirements for AI scheduling
+      people: [],    // [{ role, skills, certifications, quantity }]
+      vehicles: [],  // [{ type, min_capacity, quantity }]
+      equipment: []  // [{ type, min_condition, quantity }]
+    },
     is_deleted: false,
   },
 
@@ -79,6 +84,35 @@ const Booking = Backbone.Model.extend({
     const equipment = attrs.equipment || [];
     if (people.length === 0 && vehicles.length === 0 && equipment.length === 0) {
       errors.resources = 'At least one person, vehicle, or equipment must be assigned';
+    }
+
+    // Validate requirements if present
+    if (attrs.requirements) {
+      const { people: peopleReqs = [], vehicles: vehicleReqs = [], equipment: equipmentReqs = [] } = attrs.requirements;
+
+      // Validate people requirements
+      peopleReqs.forEach((req, idx) => {
+        if (!req.quantity || req.quantity < 1) {
+          errors[`requirements.people.${idx}.quantity`] = 'Quantity must be at least 1';
+        }
+      });
+
+      // Validate vehicle requirements
+      vehicleReqs.forEach((req, idx) => {
+        if (!req.quantity || req.quantity < 1) {
+          errors[`requirements.vehicles.${idx}.quantity`] = 'Quantity must be at least 1';
+        }
+      });
+
+      // Validate equipment requirements
+      equipmentReqs.forEach((req, idx) => {
+        if (!req.quantity || req.quantity < 1) {
+          errors[`requirements.equipment.${idx}.quantity`] = 'Quantity must be at least 1';
+        }
+        if (req.min_condition && !['excellent', 'good', 'fair', 'poor'].includes(req.min_condition)) {
+          errors[`requirements.equipment.${idx}.min_condition`] = 'Condition must be excellent, good, fair, or poor';
+        }
+      });
     }
 
     if (Object.keys(errors).length > 0) {
