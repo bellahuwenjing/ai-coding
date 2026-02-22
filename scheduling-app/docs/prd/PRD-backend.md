@@ -539,6 +539,7 @@ CREATE TABLE bookings (
     start_time TIMESTAMPTZ NOT NULL,
     end_time TIMESTAMPTZ NOT NULL,
     notes TEXT,
+    requirements JSONB DEFAULT '{}',  -- Resource requirements (skills, vehicle type, equipment, quantities)
     is_deleted BOOLEAN DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -561,6 +562,67 @@ CREATE POLICY "Users can manage bookings in their company"
         SELECT company_id FROM people WHERE user_id = auth.uid()
     ));
 ```
+
+**Requirements JSONB Structure:**
+
+The `requirements` field stores structured resource requirements needed for the booking. This enables AI-powered scheduling, conflict detection based on requirements, and validation that assigned resources meet the criteria.
+
+```json
+{
+  "people": [
+    {
+      "role": "welder",
+      "skills": ["welding", "rigging"],
+      "certifications": ["AWS D1.1"],
+      "quantity": 2
+    },
+    {
+      "role": "safety officer",
+      "skills": [],
+      "certifications": ["OSHA 30"],
+      "quantity": 1
+    }
+  ],
+  "vehicles": [
+    {
+      "type": "van",
+      "min_capacity": 8,
+      "quantity": 1
+    }
+  ],
+  "equipment": [
+    {
+      "type": "welder",
+      "min_condition": "good",
+      "quantity": 2
+    },
+    {
+      "type": "safety harness",
+      "min_condition": "excellent",
+      "quantity": 3
+    }
+  ]
+}
+```
+
+**Field descriptions:**
+- `people[].role` (string, optional) — Job title or role description (e.g., "welder", "driver", "foreman")
+- `people[].skills` (array, optional) — Required skills (e.g., ["welding", "rigging"])
+- `people[].certifications` (array, optional) — Required certifications (e.g., ["AWS D1.1", "OSHA 30"])
+- `people[].quantity` (number, required) — How many people with these requirements are needed
+- `vehicles[].type` (string, optional) — Vehicle type keyword (e.g., "van", "truck", "pickup")
+- `vehicles[].min_capacity` (number, optional) — Minimum passenger/cargo capacity
+- `vehicles[].quantity` (number, required) — How many vehicles needed
+- `equipment[].type` (string, optional) — Equipment type keyword (e.g., "welder", "drill", "safety harness")
+- `equipment[].min_condition` (string, optional) — Minimum acceptable condition: "excellent", "good", "fair", or "poor"
+- `equipment[].quantity` (number, required) — How many equipment items needed
+
+**Usage:**
+- Empty object `{}` means no specific requirements (open booking)
+- Empty arrays `[]` for a resource type means that resource type is not needed
+- The CSP+AI optimal scheduling feature uses this structure to find and rank feasible resource assignments
+- Frontend booking form collects these requirements from the user
+- Assigned resources (via junction tables) should ideally satisfy these requirements, though enforcement is optional in MVP
 
 ### 5.6 booking_people (Junction Table)
 
@@ -1037,6 +1099,24 @@ Response (200):
             "start_time": "2026-01-22T09:00:00Z",
             "end_time": "2026-01-22T12:00:00Z",
             "notes": "Bring electrical tools",
+            "requirements": {
+                "people": [
+                    {
+                        "role": "electrician",
+                        "skills": ["electrical"],
+                        "certifications": [],
+                        "quantity": 1
+                    }
+                ],
+                "vehicles": [
+                    {
+                        "type": "truck",
+                        "min_capacity": null,
+                        "quantity": 1
+                    }
+                ],
+                "equipment": []
+            },
             "is_deleted": false,
             "people": [
                 {
@@ -1083,9 +1163,36 @@ Request:
     "person_ids": [1, 3],
     "vehicle_ids": [2],
     "equipment_ids": [5, 7],
-    "notes": "Quarterly maintenance check"
+    "notes": "Quarterly maintenance check",
+    "requirements": {
+        "people": [
+            {
+                "role": "electrician",
+                "skills": ["electrical", "troubleshooting"],
+                "certifications": ["Licensed Electrician"],
+                "quantity": 2
+            }
+        ],
+        "vehicles": [
+            {
+                "type": "truck",
+                "min_capacity": 4,
+                "quantity": 1
+            }
+        ],
+        "equipment": [
+            {
+                "type": "excavator",
+                "min_condition": "good",
+                "quantity": 1
+            }
+        ]
+    }
 }
 ```
+
+**Field notes:**
+- `requirements` (object, optional) — Structured resource requirements. See "Requirements JSONB Structure" in database schema section for full format. Defaults to `{}` if omitted.
 
 Response (201):
 ```json
@@ -1129,6 +1236,30 @@ Response (201):
                 "serial_number": "GEN-003"
             }
         ],
+        "requirements": {
+            "people": [
+                {
+                    "role": "electrician",
+                    "skills": ["electrical", "troubleshooting"],
+                    "certifications": ["Licensed Electrician"],
+                    "quantity": 2
+                }
+            ],
+            "vehicles": [
+                {
+                    "type": "truck",
+                    "min_capacity": 4,
+                    "quantity": 1
+                }
+            ],
+            "equipment": [
+                {
+                    "type": "excavator",
+                    "min_condition": "good",
+                    "quantity": 1
+                }
+            ]
+        },
         "created_at": "2026-01-22T14:45:00Z",
         "updated_at": "2026-01-22T14:45:00Z"
     }

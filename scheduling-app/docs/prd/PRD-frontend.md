@@ -224,15 +224,33 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 - [ ] **Booking Form**
   - Title, location, notes fields
   - Start date/time and end date/time pickers
+  - **Requirements section** (collapsible/expandable, optional):
+    - People requirements (repeatable):
+      - Role (text input, optional)
+      - Skills (multi-select or comma-separated tags, optional)
+      - Certifications (multi-select or comma-separated tags, optional)
+      - Quantity (number input, required, min: 1)
+      - Add/remove requirement button
+    - Vehicle requirements (repeatable):
+      - Type (text input, optional)
+      - Minimum capacity (number input, optional)
+      - Quantity (number input, required, min: 1)
+      - Add/remove requirement button
+    - Equipment requirements (repeatable):
+      - Type (text input, optional)
+      - Minimum condition (dropdown: excellent/good/fair/poor, optional)
+      - Quantity (number input, required, min: 1)
+      - Add/remove requirement button
   - Resource assignment with transfer-list UI
   - Three separate transfer lists (people, vehicles, equipment)
   - Filter assignable people (exclude admins/deleted)
   - Submit button (validates all fields)
   - Cancel button
-  - Form validation
+  - Form validation (requirements quantities must be >= 1 if present)
 
 - [ ] **Bookings List View**
   - List of bookings with title, date/time, location
+  - Display requirements summary if present (e.g., "Needs: 2 welders, 1 van")
   - Filter by date range (start date, end date)
   - Filter by person assigned
   - Filter by vehicle assigned
@@ -301,6 +319,7 @@ Enable companies to schedule, track, and optimize the allocation of their workfo
 
 - [ ] **Booking Details View**
   - Dedicated page/modal for booking details
+  - Show requirements (if present) with all details (role, skills, certifications, quantities, vehicle type/capacity, equipment type/condition)
   - Show all assigned people, vehicles, equipment
   - Show created by, created at, updated at
   - Link to edit booking
@@ -1009,6 +1028,11 @@ const Booking = Backbone.Model.extend({
         start_time: null,
         end_time: null,
         notes: '',
+        requirements: {        // Resource requirements (skills, vehicle type, equipment, quantities)
+            people: [],        // [{ role, skills, certifications, quantity }]
+            vehicles: [],      // [{ type, min_capacity, quantity }]
+            equipment: []      // [{ type, min_condition, quantity }]
+        },
         is_deleted: false,
         // Populated by server on fetch
         people: [],
@@ -1027,6 +1051,35 @@ const Booking = Backbone.Model.extend({
         }
         if (new Date(attrs.start_time) >= new Date(attrs.end_time)) {
             return 'End time must be after start time';
+        }
+
+        // Validate requirements structure if present
+        if (attrs.requirements) {
+            const { people = [], vehicles = [], equipment = [] } = attrs.requirements;
+
+            // Validate people requirements
+            for (const req of people) {
+                if (!req.quantity || req.quantity < 1) {
+                    return 'People requirement quantity must be at least 1';
+                }
+            }
+
+            // Validate vehicle requirements
+            for (const req of vehicles) {
+                if (!req.quantity || req.quantity < 1) {
+                    return 'Vehicle requirement quantity must be at least 1';
+                }
+            }
+
+            // Validate equipment requirements
+            for (const req of equipment) {
+                if (!req.quantity || req.quantity < 1) {
+                    return 'Equipment requirement quantity must be at least 1';
+                }
+                if (req.min_condition && !['excellent', 'good', 'fair', 'poor'].includes(req.min_condition)) {
+                    return 'Equipment min_condition must be excellent, good, fair, or poor';
+                }
+            }
         }
     },
 
