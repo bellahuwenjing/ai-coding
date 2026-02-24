@@ -607,3 +607,87 @@ CSP_TIMEOUT_MS=30000                    # CSP solver timeout
 - Track CSP "no solution found" rate (if high, constraints may be too tight)
 - Track AI ranking latency and token usage
 - A/B test: Hybrid vs. simple keyword approach — measure booking completion rate
+
+---
+
+## 15. When to Upgrade from Simple LLM Call to AI Agent
+
+### The Core Distinction
+
+A **simple LLM call** works when:
+> All data the LLM needs can be pre-fetched and passed in one context window, before any reasoning starts.
+
+An **AI agent** becomes necessary when:
+> The LLM needs to decide what to look up next based on what it just found — i.e., data-fetching and reasoning are interleaved.
+
+---
+
+### Specific Thresholds for This App
+
+#### 1. External API calls mid-reasoning → Agent needed
+
+Right now, all data lives in Supabase. It can be fetched upfront and handed to the LLM. But once ranking requires calling outside the DB *during* reasoning:
+
+- **Travel time:** "How long does it take this person to drive from their home to the job site?" — requires a Maps API call. The result changes by day of week and time of day, so it cannot be precomputed. The agent calls the Maps API as a tool, gets the result, then factors it into ranking.
+- **Real-time fleet location:** "Is this vehicle currently at the depot or still on a previous job running late?" — requires polling a fleet tracker API.
+- **Weather:** "This is an outdoor structural job — what is the forecast?" — requires a weather API call.
+
+These cannot be pre-fetched generically because the agent does not know which resources are candidates until it starts reasoning.
+
+---
+
+#### 2. Fatigue — depends on rule complexity
+
+- **Simple fatigue** (a `hours_worked_this_week` field): pre-fetch, pass to LLM → still a simple call.
+- **Complex fatigue** (rolling 14-day window, certification-specific minimum rest periods, labor regulations that vary by job type): the LLM would need to ask "what were this person's last 10 jobs, their duration, their intensity category, and what rest rules apply to each certification they hold?" — that is multiple targeted queries whose structure depends on intermediate results. Agent territory.
+
+**The threshold:** does calculating the soft constraint require chained lookups whose structure depends on intermediate results?
+
+---
+
+#### 3. Intelligent constraint relaxation → Agent needed
+
+The current no-solution (422) diagnostics are computed statically in code — a fixed analysis run once. A smarter version would look like:
+
+> "No solution found. Let me try dropping the AWS D1.1 certification requirement — still no solution. Let me try extending the time window by 2 hours — now 3 solutions exist. Let me try relaxing equipment condition from 'excellent' to 'good' — adds 2 more. Here are the trade-offs."
+
+That is an agent calling the CSP solver as a tool, iteratively, with each call informed by the previous result. This cannot be done in a single prompt because you do not know which constraints to relax until you see which ones are blocking feasibility.
+
+---
+
+#### 4. Multi-booking optimization (PRD P1 batch feature) → Agent needed
+
+When optimizing a single booking, the solution space is tractable. When optimizing 10 bookings simultaneously:
+
+- Assigning Alice to Job A makes her unavailable for Job B
+- That forces Bob onto Job B, which leaves Job C under-staffed
+- The agent needs to tentatively assign, check cascading effects, backtrack, and try alternatives
+
+This is too large to enumerate all combinations upfront and too stateful for a single prompt. The agent needs to call the CSP solver as a tool repeatedly, reasoning about the global assignment incrementally.
+
+---
+
+#### 5. User feedback mid-session → Agent needed
+
+If the user can say "not those two people, they had a conflict last month" and the system refines its answer, that is a multi-turn agent. State (rejected options, constraints the user is expressing) accumulates across turns and drives new tool calls.
+
+---
+
+### Decision Rule Summary
+
+| Situation | Approach |
+|---|---|
+| All needed data is in your DB, fetchable upfront | Simple LLM call |
+| Ranking requires calling an external API (maps, weather, fleet) | Agent with tools |
+| Constraint checks require chained DB queries whose structure depends on intermediate results (complex fatigue, labor regulations) | Agent with tools |
+| No-solution case requires iterative relaxation (try dropping constraint A, then B, compare) | Agent with tools |
+| Multi-booking optimization (assignments cascade across bookings) | Agent with tools |
+| User refines requirements mid-session based on suggestions | Multi-turn agent |
+
+---
+
+### First Likely Trigger for This App
+
+The first real trigger will likely be one of:
+1. **Travel time / distance-aware scheduling** — if location becomes a ranking factor, a Maps API call is needed mid-reasoning
+2. **Intelligent constraint relaxation** — if users need "why can't this be scheduled and what would need to change?" answers more sophisticated than static code-generated diagnostics

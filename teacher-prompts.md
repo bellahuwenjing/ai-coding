@@ -126,3 +126,13 @@ Help me plan a new ai-related feature in my backend. I have an endpoint /luxury-
 I plan to connect to openai api and use their LLM to generate this message.
 
 First read docs/prd/backend/prd.md and kiwicar-backend to understand my backend and related endpoint; then write a prd for this new feature, put under docs/prd/backend/features
+
+
+1 我的app想实现这个新的ai 功能： [xxxx]
+
+2 先做个plan，为了实现，你推荐什么approach？是否需要 ai agent？ 
+
+3. 写出你的high level implementation plan
+
+i want to implement an AI feature in my app, read PRD-hybrid-optimal-scheduling.md for details. what
+implementation  approach do you recommond? is there a need for AI agent? write a high level implementation plan 

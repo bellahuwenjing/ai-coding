@@ -1054,3 +1054,9 @@ records, or generating contextual explanations. Here are better candidates for t
 ---
 
 Which of these resonates, or is there a different direction you have in mind?
+
+---
+
+### Prompt 34
+
+you said there's no need for an agent, i aggree that's true based on the current app scope. what kind of complexity does the app have to handle in order for the ai feature to be suitable for using agent? e.g. if the rules for ranking become more complex, not just checking the correct role/type of resources and times, but also if person is fatigue, if distance between job and person's home address is considered, etc.   
