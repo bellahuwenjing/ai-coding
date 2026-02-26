@@ -7,6 +7,7 @@ const Person = Backbone.Model.extend({
     name: '',
     email: '',
     phone: '',
+    home_address: '',
     skills: [],
     certifications: [],
     hourly_rate: null,

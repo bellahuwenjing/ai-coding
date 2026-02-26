@@ -8,6 +8,7 @@ export default function PersonForm({ person, onClose }) {
     name: '',
     email: '',
     phone: '',
+    home_address: '',
     skills: [],
   })
   const [skillInput, setSkillInput] = useState('')
@@ -24,6 +25,7 @@ export default function PersonForm({ person, onClose }) {
         name: person.get('name') || '',
         email: person.get('email') || '',
         phone: person.get('phone') || '',
+        home_address: person.get('home_address') || '',
         skills: person.get('skills') || [],
       })
     }
@@ -151,6 +153,21 @@ export default function PersonForm({ person, onClose }) {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="Enter phone number"
+            />
+          </div>
+
+          {/* Home Address */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Home Address
+            </label>
+            <input
+              type="text"
+              name="home_address"
+              value={formData.home_address}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="e.g. 123 Main St, San Francisco, CA 94105"
             />
           </div>
 

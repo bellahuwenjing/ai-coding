@@ -89,7 +89,7 @@ exports.getOne = async (req, res) => {
  */
 exports.create = async (req, res) => {
   try {
-    const { name, email, phone, skills, certifications, hourly_rate } = req.body;
+    const { name, email, phone, home_address, skills, certifications, hourly_rate } = req.body;
     const companyId = req.user.company_id;
 
     // Validate required fields
@@ -106,6 +106,7 @@ exports.create = async (req, res) => {
       name,
       email,
       phone: phone || null,
+      home_address: home_address || null,
       skills: skills || [],
       certifications: certifications || [],
       hourly_rate: hourly_rate || null
@@ -148,7 +149,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, skills, certifications, hourly_rate } = req.body;
+    const { name, email, phone, home_address, skills, certifications, hourly_rate } = req.body;
     const companyId = req.user.company_id;
 
     // Validate required fields
@@ -164,6 +165,7 @@ exports.update = async (req, res) => {
       name,
       email,
       phone: phone || null,
+      home_address: home_address || null,
       updated_at: new Date().toISOString()
     };
 
