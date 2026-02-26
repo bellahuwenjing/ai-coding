@@ -119,20 +119,21 @@ First read docs/prd/backend/prd.md to understand our backend server, kiwicar-bac
 
 First read docs/prd/backend/prd.md to understand our backend server, kiwicar-backend. We don't have any unit testing yet. First set up unit test foundation, then pick 1-2 most critical service and write unit tests for them. Install any dependency if helpful.
 
-
-
-Help me plan a new ai-related feature in my backend. I have an endpoint /luxury-vehicle that queries luxury vehicles to the user. Now I want ai to generate a special description for each luxury vehicle retrieved to promote this vehicle. 
+Help me plan a new ai-related feature in my backend. I have an endpoint /luxury-vehicle that queries luxury vehicles to the user. Now I want ai to generate a special description for each luxury vehicle retrieved to promote this vehicle.
 
 I plan to connect to openai api and use their LLM to generate this message.
 
 First read docs/prd/backend/prd.md and kiwicar-backend to understand my backend and related endpoint; then write a prd for this new feature, put under docs/prd/backend/features
 
-
 1 我的app想实现这个新的ai 功能： [xxxx]
 
-2 先做个plan，为了实现，你推荐什么approach？是否需要 ai agent？ 
+2 先做个plan，为了实现，你推荐什么approach？是否需要 ai agent？
 
 3. 写出你的high level implementation plan
 
 i want to implement an AI feature in my app, read PRD-hybrid-optimal-scheduling.md for details. what
-implementation  approach do you recommond? is there a need for AI agent? write a high level implementation plan 
+implementation approach do you recommond? is there a need for AI agent? write a high level implementation plan
+
+use your react best practice skill to help review my frontend pattern - identify some critical improvement suggestion
+
+Help me prepare for a family road trip. 3 people (2 adults + 1 kid), 3 hours driving from sydney city, with available accomodation (airbnb or hotel), during the easter holiday. Ask questions if you have. Shortlist 5 destinations in a list file; generate a pdf tour guide (day to day activities) for the 1st recommendation.
