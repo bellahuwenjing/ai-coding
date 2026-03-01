@@ -12,7 +12,9 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/__tests__/**/*.test.js"],
+    "testMatch": [
+      "**/__tests__/**/*.test.js"
+    ],
     "clearMocks": true,
     "verbose": true
   },
@@ -26,6 +28,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@sentry/node": "^10.40.0",
     "@supabase/supabase-js": "^2.94.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",

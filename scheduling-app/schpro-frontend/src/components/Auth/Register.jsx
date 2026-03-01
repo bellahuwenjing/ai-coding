@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { track } from '@vercel/analytics';
 import authService from '../../services/auth';
 
 function Register({ onSwitchToLogin }) {
@@ -46,6 +47,7 @@ function Register({ onSwitchToLogin }) {
       );
 
       if (result.success) {
+        track('register');
         // Reload the page to trigger App.jsx to re-render with authenticated state
         window.location.reload();
       } else {

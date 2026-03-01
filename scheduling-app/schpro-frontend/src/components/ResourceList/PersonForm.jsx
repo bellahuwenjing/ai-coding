@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { track } from '@vercel/analytics'
 import Person from '../../models/Person'
 import Button from '../common/Button'
 import ErrorMessage from '../common/ErrorMessage'
@@ -84,6 +85,8 @@ export default function PersonForm({ person, onClose }) {
 
       // Save
       await model.save()
+
+      track(isEdit ? 'person_updated' : 'person_created')
 
       // Close form
       onClose()

@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../services/supabase.service');
+const { track } = require('../services/analytics.service');
 
 /**
  * Get all people for the user's company
@@ -126,6 +127,8 @@ exports.create = async (req, res) => {
         message: 'Failed to create person'
       });
     }
+
+    track('person.created', companyId);
 
     res.status(201).json({
       status: 'success',

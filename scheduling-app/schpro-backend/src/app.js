@@ -1,8 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const Sentry = require('@sentry/node');
 // Note: dotenv is loaded in supabase.service.js
 
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  enabled: !!process.env.SENTRY_DSN,
+});
+
 const app = express();
+
+app.use(Sentry.Handlers.requestHandler());
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -34,6 +42,8 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+app.use(Sentry.Handlers.errorHandler());
 
 // 404 handler
 app.use((req, res) => {

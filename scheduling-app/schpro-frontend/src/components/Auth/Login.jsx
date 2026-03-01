@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { track } from '@vercel/analytics';
 import authService from '../../services/auth';
 
 function Login({ onSwitchToRegister }) {
@@ -16,6 +17,7 @@ function Login({ onSwitchToRegister }) {
       const result = await authService.login(email, password);
 
       if (result.success) {
+        track('login');
         // Reload the page to trigger App.jsx to re-render with authenticated state
         window.location.reload();
       } else {

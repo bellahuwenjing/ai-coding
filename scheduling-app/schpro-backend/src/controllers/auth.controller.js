@@ -1,4 +1,5 @@
 const { supabaseAuth, supabaseAdmin } = require('../services/supabase.service');
+const { track } = require('../services/analytics.service');
 
 /**
  * Register new company and admin user
@@ -91,6 +92,8 @@ exports.register = async (req, res) => {
       });
     }
 
+    track('auth.register', company.id);
+
     // 4. Return success with session tokens
     res.status(201).json({
       status: 'success',
@@ -169,6 +172,8 @@ exports.login = async (req, res) => {
         message: 'User profile not found'
       });
     }
+
+    track('auth.login', person.company_id);
 
     // 3. Return success with session and profile
     res.json({

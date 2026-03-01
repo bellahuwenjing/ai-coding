@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../services/supabase.service');
+const { track } = require('../services/analytics.service');
 
 const BOOKING_SELECT = `*, booking_people(person_id), booking_vehicles(vehicle_id), booking_equipment(equipment_id)`;
 
@@ -255,6 +256,12 @@ exports.create = async (req, res) => {
 
     // Persist assigned resources to junction tables
     await insertResources(booking.id, people, vehicles, equipment);
+
+    track('booking.created', companyId, {
+      people_count: people?.length || 0,
+      vehicles_count: vehicles?.length || 0,
+      equipment_count: equipment?.length || 0,
+    });
 
     res.status(201).json({
       status: 'success',

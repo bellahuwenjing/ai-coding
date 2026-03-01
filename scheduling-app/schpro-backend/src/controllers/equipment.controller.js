@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../services/supabase.service');
+const { track } = require('../services/analytics.service');
 
 /**
  * Get all equipment for the user's company
@@ -142,6 +143,8 @@ exports.create = async (req, res) => {
         message: 'Failed to create equipment'
       });
     }
+
+    track('equipment.created', companyId);
 
     res.status(201).json({
       status: 'success',

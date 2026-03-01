@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { track } from '@vercel/analytics'
 import Booking from '../../models/Booking'
 import PeopleCollection from '../../collections/PeopleCollection'
 import VehiclesCollection from '../../collections/VehiclesCollection'
@@ -134,6 +135,12 @@ export default function BookingForm({ booking, onCancel, onSave }) {
 
       // Save
       await model.save()
+
+      track(isEdit ? 'booking_updated' : 'booking_created', {
+        people_count: formData.people.length,
+        vehicles_count: formData.vehicles.length,
+        equipment_count: formData.equipment.length,
+      })
 
       // Success
       onSave()

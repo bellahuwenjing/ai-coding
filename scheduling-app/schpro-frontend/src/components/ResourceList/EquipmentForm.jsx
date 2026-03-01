@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { track } from '@vercel/analytics'
 import Equipment from '../../models/Equipment'
 import Button from '../common/Button'
 import ErrorMessage from '../common/ErrorMessage'
@@ -64,6 +65,8 @@ export default function EquipmentForm({ equipment, onClose }) {
 
       // Save
       await model.save()
+
+      track(isEdit ? 'equipment_updated' : 'equipment_created')
 
       // Close form
       onClose()
