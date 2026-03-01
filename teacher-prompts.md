@@ -138,7 +138,6 @@ use your react best practice skill to help review my frontend pattern - identify
 
 Help me prepare for a family road trip. 3 people (2 adults + 1 kid), 3 hours driving from sydney city, with available accomodation (airbnb or hotel), during the easter holiday. Ask questions if you have. Shortlist 5 destinations in a list file; generate a pdf tour guide (day to day activities) for the 1st recommendation.
 
-
 ---
 
 Help me refactor my project so frontend and backend integrates better, using tRPC.
@@ -154,3 +153,17 @@ currently, frontend: vercel, backend: render
 
 use chrome claude plugin when logging in vercel:
 help me find the monitoring page for my deployed project: ...
+
+---
+
+Help me plan the analytics for my full stack web app. I've just done functional MVP and no analytics at all.
+Frontend: /kiwicar-frontend, React NextJS project, deployed on Vercel
+backend: /kiwicar-backend, express rest api server, deployed on render.com
+
+Help me:
+
+1. think of analytics scope for MVP
+2. based on my stack and deployment platform, give me a practical plan without too much effort
+
+which pages /components will trigger the analytics events to vercel?
+which pages do you plan to add the events?
