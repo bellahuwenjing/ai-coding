@@ -137,3 +137,20 @@ implementation approach do you recommond? is there a need for AI agent? write a 
 use your react best practice skill to help review my frontend pattern - identify some critical improvement suggestion
 
 Help me prepare for a family road trip. 3 people (2 adults + 1 kid), 3 hours driving from sydney city, with available accomodation (airbnb or hotel), during the easter holiday. Ask questions if you have. Shortlist 5 destinations in a list file; generate a pdf tour guide (day to day activities) for the 1st recommendation.
+
+
+---
+
+Help me refactor my project so frontend and backend integrates better, using tRPC.
+Current status:
+/schpro-backend: our backend server, based on express
+/schpro-frontend: our frontend server, based on react next js
+Understand my project architecture well, then give me a refactor plan (including legacy code cleanup)
+
+save this plan under docs/prd
+
+after full cutover miggration, how is it going to change my deployment?
+currently, frontend: vercel, backend: render
+
+use chrome claude plugin when logging in vercel:
+help me find the monitoring page for my deployed project: ...
