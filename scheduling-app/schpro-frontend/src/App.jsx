@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { track } from '@vercel/analytics'
 import authService from './services/auth'
 import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
@@ -15,6 +16,20 @@ function App() {
 
   const isAuthenticated = authService.isAuthenticated()
   const currentUser = authService.getCurrentUser()
+
+  // Track view changes as page views in Vercel Analytics.
+  // The app uses state-based routing (no URL changes), so inject() won't fire automatically.
+  const VIEW_LABELS = {
+    'people': 'People',
+    'vehicles': 'Vehicles',
+    'equipment': 'Equipment',
+    'bookings': 'Bookings',
+    'booking-form': 'Booking Form',
+  }
+  useEffect(() => {
+    if (!isAuthenticated) return
+    track('page_view', { page: VIEW_LABELS[currentView] || currentView })
+  }, [currentView])
 
   const handleLogout = async () => {
     await authService.logout()

@@ -20,7 +20,9 @@
       "Bash(taskkill:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(cat \"D:/JR AI coding/scheduling-app/schpro-frontend/src/router/\"*.js)",
+      "Bash(cat \"D:/JR AI coding/scheduling-app/schpro-frontend/src/router/\"*.jsx)"
     ]
   },
   "outputStyle": "default"

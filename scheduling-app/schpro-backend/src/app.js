@@ -10,8 +10,6 @@ Sentry.init({
 
 const app = express();
 
-app.use(Sentry.Handlers.requestHandler());
-
 // Import routes
 const authRoutes = require('./routes/auth.routes');
 const peopleRoutes = require('./routes/people.routes');
@@ -43,7 +41,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 // 404 handler
 app.use((req, res) => {
