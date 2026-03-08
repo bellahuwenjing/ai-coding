@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(claude update:*)",
-      "Bash(claude:*)"
+      "Bash(claude:*)",
+      "Skill(claude-developer-platform)",
+      "Bash(npx jest:*)"
     ]
   }
 }

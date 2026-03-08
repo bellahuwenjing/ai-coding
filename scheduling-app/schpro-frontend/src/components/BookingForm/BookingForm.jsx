@@ -10,6 +10,8 @@ import ErrorMessage from '../common/ErrorMessage'
 import LoadingSpinner from '../common/LoadingSpinner'
 import TransferList from './TransferList'
 import RequirementsSection from './RequirementsSection'
+import AiSolutionsPanel from './AiSolutionsPanel'
+import apiWrapper from '../../services/api'
 
 export default function BookingForm({ booking, onCancel, onSave }) {
   const [peopleCollection] = useState(() => new PeopleCollection())
@@ -39,6 +41,11 @@ export default function BookingForm({ booking, onCancel, onSave }) {
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+
+  // AI scheduling state
+  const [isSearchingAI, setIsSearchingAI] = useState(false)
+  const [aiResult, setAiResult] = useState(null) // { solutions, violatedConstraints, suggestions, optimizeFor }
+  const [aiError, setAiError] = useState(null)
 
   const isEdit = Boolean(booking)
 
@@ -93,7 +100,7 @@ export default function BookingForm({ booking, onCancel, onSave }) {
 
   const handleRequirementsChange = (newRequirements) => {
     setFormData(prev => ({ ...prev, requirements: newRequirements }))
-    // Clear requirements-related errors
+    setAiResult(null) // clear AI results when requirements change
     const newErrors = { ...errors }
     Object.keys(newErrors).forEach(key => {
       if (key.startsWith('requirements.')) {
@@ -101,6 +108,52 @@ export default function BookingForm({ booking, onCancel, onSave }) {
       }
     })
     setErrors(newErrors)
+  }
+
+  const hasRequirements = (
+    formData.requirements.people.length > 0 ||
+    formData.requirements.vehicles.length > 0 ||
+    formData.requirements.equipment.length > 0
+  )
+
+  const canSearchAI = formData.start_time && formData.end_time && hasRequirements && !isSearchingAI
+
+  const handleFindOptimal = async () => {
+    setIsSearchingAI(true)
+    setAiResult(null)
+    setAiError(null)
+
+    try {
+      const payload = {
+        title: formData.title || 'Untitled Booking',
+        location: formData.location,
+        start_time: new Date(formData.start_time).toISOString(),
+        end_time: new Date(formData.end_time).toISOString(),
+        notes: formData.notes,
+        requirements: formData.requirements,
+        preferences: { optimize_for: 'balanced' },
+        ...(isEdit && booking ? { exclude_booking_id: booking.id } : {}),
+      }
+
+      const response = await apiWrapper.post('/ai/schedule-optimal', payload, { timeout: 60000 })
+      const { solutions, optimize_for } = response.data.data
+      setAiResult({ solutions, violatedConstraints: [], suggestions: [], optimizeFor: optimize_for })
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const { violated_constraints, suggestions } = err.response.data
+        setAiResult({ solutions: [], violatedConstraints: violated_constraints || [], suggestions: suggestions || [], optimizeFor: 'balanced' })
+      } else {
+        setAiError(err.response?.data?.message || err.message || 'AI scheduling failed')
+      }
+    } finally {
+      setIsSearchingAI(false)
+    }
+  }
+
+  const handleUseSolution = (sol) => {
+    handleResourceChange('people', sol.people_ids || [])
+    handleResourceChange('vehicles', sol.vehicle_ids || [])
+    handleResourceChange('equipment', sol.equipment_ids || [])
   }
 
   const handleSubmit = async (e) => {
@@ -255,6 +308,45 @@ export default function BookingForm({ booking, onCancel, onSave }) {
               onChange={handleRequirementsChange}
               errors={errors}
             />
+
+            {/* AI Scheduling Trigger */}
+            <div className="mb-6">
+              <Button
+                type="button"
+                onClick={handleFindOptimal}
+                disabled={!canSearchAI}
+                variant="secondary"
+                className="w-full"
+              >
+                {isSearchingAI ? 'Searching for optimal resources...' : 'Find Best Resources with AI'}
+              </Button>
+              {!hasRequirements && (
+                <p className="mt-1 text-xs text-gray-500 text-center">
+                  Add resource requirements above to enable AI scheduling
+                </p>
+              )}
+              {!formData.start_time || !formData.end_time ? (
+                <p className="mt-1 text-xs text-gray-500 text-center">
+                  Set start and end times to enable AI scheduling
+                </p>
+              ) : null}
+              {aiError && (
+                <p className="mt-2 text-sm text-red-600 text-center">{aiError}</p>
+              )}
+              {aiResult && (
+                <AiSolutionsPanel
+                  solutions={aiResult.solutions}
+                  violatedConstraints={aiResult.violatedConstraints}
+                  suggestions={aiResult.suggestions}
+                  allPeople={allPeople}
+                  allVehicles={allVehicles}
+                  allEquipment={allEquipment}
+                  optimizeFor={aiResult.optimizeFor}
+                  onUseSolution={handleUseSolution}
+                  onDismiss={() => setAiResult(null)}
+                />
+              )}
+            </div>
 
             {/* Resource Assignment */}
             <div className="mb-6">

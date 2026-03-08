@@ -16,6 +16,7 @@ const peopleRoutes = require('./routes/people.routes');
 const vehiclesRoutes = require('./routes/vehicles.routes');
 const equipmentRoutes = require('./routes/equipment.routes');
 const bookingRoutes = require('./routes/booking.routes');
+const optimalSchedulingRoutes = require('./routes/optimal-scheduling.routes');
 
 // Middleware
 app.use(cors({
@@ -31,6 +32,7 @@ app.use('/api/people', peopleRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/ai', optimalSchedulingRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

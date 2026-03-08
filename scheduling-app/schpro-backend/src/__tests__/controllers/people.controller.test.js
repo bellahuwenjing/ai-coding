@@ -9,6 +9,11 @@ jest.mock('../../services/supabase.service', () => ({
   },
 }));
 
+// Mock analytics service - fire-and-forget, not under test here
+jest.mock('../../services/analytics.service', () => ({
+  track: jest.fn(),
+}));
+
 const { supabaseAdmin } = require('../../services/supabase.service');
 
 // Build a minimal Express app that injects a mock user, bypassing auth middleware
